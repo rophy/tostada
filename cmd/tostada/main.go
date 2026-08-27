@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/rophy/tostada/internal/api"
 	"github.com/rophy/tostada/internal/auth"
@@ -23,15 +24,24 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	authProvider, err := auth.NewAuth(
-		context.Background(),
-		cfg.OIDC.IssuerURL,
-		cfg.OIDC.ClientID,
-		cfg.OIDC.ClientSecret,
-		cfg.OIDC.RedirectURL,
-	)
+	// Retry OIDC discovery — sidecar proxy may not be ready yet
+	var authProvider *auth.Auth
+	for i := 0; i < 10; i++ {
+		authProvider, err = auth.NewAuth(
+			context.Background(),
+			cfg.OIDC.IssuerURL,
+			cfg.OIDC.ClientID,
+			cfg.OIDC.ClientSecret,
+			cfg.OIDC.RedirectURL,
+		)
+		if err == nil {
+			break
+		}
+		log.Printf("OIDC discovery attempt %d/10 failed: %v", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("Failed to initialize auth: %v", err)
+		log.Fatalf("Failed to initialize auth after retries: %v", err)
 	}
 
 	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, cfg.JupyterHub.APIToken)
@@ -42,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create sub FS: %v", err)
 	}
-	mux.Handle("GET /", http.FileServer(http.FS(distFS)))
+	mux.Handle("/", http.FileServer(http.FS(distFS)))
 
 	log.Printf("Tostada listening on %s", cfg.Server.Addr)
 	log.Fatal(http.ListenAndServe(cfg.Server.Addr, mux))

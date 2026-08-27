@@ -7,7 +7,11 @@ build:
     - image: tostada
       docker:
         dockerfile: Dockerfile
-deploy:
+manifests:
+  rawYaml:
+    - k8s/oidc-mock.yaml
+    - k8s/guacamole.yaml
+    - k8s/tostada.yaml
   helm:
     releases:
       - name: jupyterhub
@@ -18,7 +22,5 @@ deploy:
         createNamespace: true
         valuesFiles:
           - k8s/jupyterhub-values.yaml
-  kubectl:
-    manifests:
-      - k8s/guacamole.yaml
-      - k8s/tostada.yaml
+deploy:
+  kubectl: {}

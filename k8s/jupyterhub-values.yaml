@@ -10,7 +10,7 @@ hub:
     tostada:
       api_token: "changeme-tostada-api-token"
   loadRoles:
-    - name: tostada-service
+    tostada-service:
       scopes:
         - "admin:users"
         - "admin:servers"
