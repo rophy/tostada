@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -17,7 +18,6 @@ type sessionsHandler struct {
 	hubClient  *hub.Client
 	workspaces []config.Workspace
 	guacCfg    config.GuacamoleConfig
-	hubCfg     config.JupyterHubConfig
 }
 
 func (h *sessionsHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +126,7 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "token generation failed", http.StatusInternalServerError)
 			return
 		}
-		connectURL = fmt.Sprintf("%s/#/client/%s?token=%s", h.guacCfg.URL, serverName, token)
+		connectURL = fmt.Sprintf("%s/#/client/%s?token=%s", h.guacCfg.URL, serverName, url.QueryEscape(token))
 	} else {
 		connectURL = srv.URL
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -23,6 +24,7 @@ type Auth struct {
 	oauth2Config *oauth2.Config
 	verifier     *oidc.IDTokenVerifier
 	sessions     map[string]session
+	mu           sync.RWMutex
 }
 
 type session struct {
@@ -101,10 +103,12 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 		}
 
 		sessionID := generateState()
+		a.mu.Lock()
 		a.sessions[sessionID] = session{
 			username: username,
 			expiry:   time.Now().Add(24 * time.Hour),
 		}
+		a.mu.Unlock()
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     sessionCookie,
@@ -125,7 +129,9 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		a.mu.RLock()
 		sess, ok := a.sessions[cookie.Value]
+		a.mu.RUnlock()
 		if !ok || time.Now().After(sess.expiry) {
 			http.Error(w, "session expired", http.StatusUnauthorized)
 			return
@@ -142,6 +148,7 @@ func UserFromContext(ctx context.Context) string {
 
 func (a *Auth) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	username := UserFromContext(r.Context())
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"username": username})
 }
 

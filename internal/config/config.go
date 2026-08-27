@@ -37,20 +37,20 @@ type GuacamoleConfig struct {
 }
 
 type Workspace struct {
-	Name           string         `yaml:"name"`
-	DisplayName    string         `yaml:"displayName"`
-	Description    string         `yaml:"description"`
-	Icon           string         `yaml:"icon"`
-	Type           string         `yaml:"type"`
-	Image          string         `yaml:"image"`
-	Port           int            `yaml:"port"`
-	Cmd            []string       `yaml:"cmd"`
-	RDPCredentials RDPCredentials `yaml:"rdpCredentials"`
+	Name           string         `yaml:"name" json:"name"`
+	DisplayName    string         `yaml:"displayName" json:"displayName"`
+	Description    string         `yaml:"description" json:"description"`
+	Icon           string         `yaml:"icon" json:"icon"`
+	Type           string         `yaml:"type" json:"type"`
+	Image          string         `yaml:"image" json:"image"`
+	Port           int            `yaml:"port" json:"port"`
+	Cmd            []string       `yaml:"cmd" json:"cmd"`
+	RDPCredentials RDPCredentials `yaml:"rdpCredentials" json:"-"`
 }
 
 type RDPCredentials struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"password"`
 }
 
 func Load(path string) (*Config, error) {

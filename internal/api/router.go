@@ -18,7 +18,6 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 		hubClient:  hubClient,
 		workspaces: cfg.Workspaces,
 		guacCfg:    cfg.Guacamole,
-		hubCfg:     cfg.JupyterHub,
 	}
 
 	authed := http.NewServeMux()
