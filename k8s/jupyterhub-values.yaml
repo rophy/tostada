@@ -1,0 +1,52 @@
+hub:
+  config:
+    JupyterHub:
+      allow_named_servers: true
+    Authenticator:
+      enable_auth_state: true
+      admin_users:
+        - admin
+  services:
+    tostada:
+      api_token: "changeme-tostada-api-token"
+  loadRoles:
+    - name: tostada-service
+      scopes:
+        - "admin:users"
+        - "admin:servers"
+        - "read:users"
+      services:
+        - tostada
+
+singleuser:
+  profileList:
+    - display_name: "Jupyter Notebook"
+      kubespawner_override:
+        image: jupyter/minimal-notebook:latest
+        cmd: ["jupyterhub-singleuser"]
+        default_url: "/lab"
+    - display_name: "Ubuntu Desktop (KasmVNC)"
+      kubespawner_override:
+        image: kasmweb/ubuntu-noble-desktop:1.16.1
+        cmd: ["/dockerstartup/kasm_default_profile.sh"]
+        port: 6901
+    - display_name: "Ubuntu Desktop (xRDP)"
+      kubespawner_override:
+        image: scottyhardy/docker-remote-desktop:latest
+        cmd: null
+        port: 3389
+        extra_annotations:
+          tostada.dev/type: guacamole
+        volume_mounts:
+          - name: dshm
+            mountPath: /dev/shm
+        volumes:
+          - name: dshm
+            emptyDir:
+              medium: Memory
+  storage:
+    capacity: 256Mi
+
+proxy:
+  service:
+    type: NodePort
