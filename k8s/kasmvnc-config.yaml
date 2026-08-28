@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kasmvnc-config
+  namespace: tostada
+data:
+  kasmvnc.yaml: |
+    network:
+      protocol: http
+      ssl:
+        require_ssl: false
+      udp:
+        public_ip: 127.0.0.1
+    desktop:
+      resolution:
+        width: 1920
+        height: 1080

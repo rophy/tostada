@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -45,11 +45,6 @@ func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret
 	}
 
 	endpoint := provider.Endpoint()
-	if internalURL != "" {
-		// AuthURL is browser-facing, must use public issuer URL
-		endpoint.AuthURL = strings.Replace(endpoint.AuthURL, internalURL, issuerURL, 1)
-		// TokenURL is server-to-server, keep internal (already from discovery)
-	}
 
 	return &Auth{
 		oauth2Config: &oauth2.Config{
@@ -89,6 +84,7 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 
 		token, err := a.oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
 		if err != nil {
+			log.Printf("Token exchange failed: %v", err)
 			http.Error(w, "token exchange failed", http.StatusInternalServerError)
 			return
 		}
@@ -101,6 +97,7 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 
 		idToken, err := a.verifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
+			log.Printf("Token verification failed: %v", err)
 			http.Error(w, "token verification failed", http.StatusInternalServerError)
 			return
 		}
@@ -171,3 +168,4 @@ func generateState() string {
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
