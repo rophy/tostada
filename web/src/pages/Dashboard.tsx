@@ -19,6 +19,14 @@ export function Dashboard() {
 
   useEffect(() => { refresh() }, [])
 
+  // Poll while any session is pending
+  useEffect(() => {
+    const hasPending = Object.values(sessions).some(s => s.pending || !s.ready)
+    if (!hasPending || Object.keys(sessions).length === 0) return
+    const timer = setInterval(refresh, 2000)
+    return () => clearInterval(timer)
+  }, [sessions])
+
   const handleLaunch = async (ws: Workspace) => {
     const name = `${ws.name}-${Date.now().toString(36)}`
     await launchWorkspace(ws.name, name)
