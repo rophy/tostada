@@ -21,6 +21,22 @@ type sessionsHandler struct {
 	guacCfg    config.GuacamoleConfig
 }
 
+func profileSlug(displayName string) string {
+	slug := strings.ToLower(strings.ReplaceAll(displayName, " ", "-"))
+	slug = strings.ReplaceAll(slug, "(", "")
+	slug = strings.ReplaceAll(slug, ")", "")
+	return slug
+}
+
+func (h *sessionsHandler) workspaceByProfile(profile string) *config.Workspace {
+	for i := range h.workspaces {
+		if profileSlug(h.workspaces[i].DisplayName) == profile {
+			return &h.workspaces[i]
+		}
+	}
+	return nil
+}
+
 func (h *sessionsHandler) list(w http.ResponseWriter, r *http.Request) {
 	username := auth.UserFromContext(r.Context())
 	user, err := h.hubClient.GetUser(username)
@@ -64,10 +80,7 @@ func (h *sessionsHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profileSlug := strings.ToLower(strings.ReplaceAll(ws.DisplayName, " ", "-"))
-	profileSlug = strings.ReplaceAll(profileSlug, "(", "")
-	profileSlug = strings.ReplaceAll(profileSlug, ")", "")
-	if err := h.hubClient.SpawnServer(username, req.ServerName, profileSlug); err != nil {
+	if err := h.hubClient.SpawnServer(username, req.ServerName, profileSlug(ws.DisplayName)); err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
@@ -107,14 +120,7 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine workspace type from server name prefix
-	var ws *config.Workspace
-	for i := range h.workspaces {
-		if strings.HasPrefix(serverName, h.workspaces[i].Name) {
-			ws = &h.workspaces[i]
-			break
-		}
-	}
+	ws := h.workspaceByProfile(srv.UserOptions["profile"])
 
 	var connectURL string
 	if ws != nil && ws.Type == "guacamole" {

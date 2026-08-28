@@ -21,10 +21,11 @@ type User struct {
 }
 
 type Server struct {
-	Name    string `json:"name"`
-	Ready   bool   `json:"ready"`
-	Pending any    `json:"pending"`
-	URL     string `json:"url"`
+	Name        string            `json:"name"`
+	Ready       bool              `json:"ready"`
+	Pending     any               `json:"pending"`
+	URL         string            `json:"url"`
+	UserOptions map[string]string `json:"user_options"`
 }
 
 func NewClient(apiURL, apiToken string) *Client {
