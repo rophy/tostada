@@ -34,8 +34,8 @@ data:
         description: Full Ubuntu desktop in browser
         icon: desktop
         type: jupyterhub
-        image: kasmvnc:1.5.0-noble
-        port: 8443
+        image: kasmweb/ubuntu-noble-desktop:1.19.0
+        port: 6901
         cmd: ["/dockerstartup/kasm_default_profile.sh"]
       - name: xrdp-ubuntu
         displayName: Ubuntu Desktop (xRDP)
