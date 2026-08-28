@@ -17,7 +17,6 @@ data:
       apiURL: "http://hub:8081/hub/api"
       apiToken: "changeme-tostada-api-token"
       proxyURL: "http://proxy-public:80"
-      proxyAPIURL: "http://proxy-api:8001"
     guacamole:
       url: "http://guacamole:8080"
       jsonSecretKey: "8bea5deb816809f814b83c28cf14d3e2"
@@ -35,8 +34,8 @@ data:
         description: Full Ubuntu desktop in browser
         icon: desktop
         type: jupyterhub
-        image: kasmweb/ubuntu-noble-desktop:1.16.1
-        port: 6901
+        image: kasmvnc:1.5.0-noble
+        port: 8443
         cmd: ["/dockerstartup/kasm_default_profile.sh"]
       - name: xrdp-ubuntu
         displayName: Ubuntu Desktop (xRDP)
@@ -64,7 +63,6 @@ spec:
       labels:
         app: tostada
         hub.jupyter.org/network-access-hub: "true"
-        hub.jupyter.org/network-access-proxy-api: "true"
         hub.jupyter.org/network-access-singleuser: "true"
     spec:
       containers:
@@ -72,12 +70,6 @@ spec:
           image: tostada
           ports:
             - containerPort: 8080
-          env:
-            - name: PROXY_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hub
-                  key: hub.config.ConfigurableHTTPProxy.auth_token
           volumeMounts:
             - name: config
               mountPath: /etc/tostada

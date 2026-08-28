@@ -30,14 +30,6 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	authed.HandleFunc("DELETE /api/sessions/{name}", sessions.stop)
 	authed.HandleFunc("GET /api/sessions/{name}/connect", sessions.connect)
 
-	if cfg.JupyterHub.ProxyAPIURL != "" {
-		wsProxy := &wsProxyHandler{
-			proxyAPIURL:   cfg.JupyterHub.ProxyAPIURL,
-			proxyAPIToken: cfg.JupyterHub.ProxyAPIToken,
-		}
-		authed.Handle("/api/ws/", wsProxy)
-	}
-
 	mux.Handle("/api/", authProvider.Middleware(authed))
 
 	if cfg.OIDC.InternalURL != "" {

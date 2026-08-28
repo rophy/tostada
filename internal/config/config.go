@@ -28,11 +28,9 @@ type OIDCConfig struct {
 }
 
 type JupyterHubConfig struct {
-	APIURL        string `yaml:"apiURL"`
-	APIToken      string `yaml:"apiToken"`
-	ProxyURL      string `yaml:"proxyURL"`
-	ProxyAPIURL   string `yaml:"proxyAPIURL"`
-	ProxyAPIToken string `yaml:"proxyAPIToken"`
+	APIURL   string `yaml:"apiURL"`
+	APIToken string `yaml:"apiToken"`
+	ProxyURL string `yaml:"proxyURL"`
 }
 
 type GuacamoleConfig struct {
@@ -65,9 +63,6 @@ func Load(path string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
-	}
-	if cfg.JupyterHub.ProxyAPIToken == "" {
-		cfg.JupyterHub.ProxyAPIToken = os.Getenv("PROXY_API_TOKEN")
 	}
 	return &cfg, nil
 }

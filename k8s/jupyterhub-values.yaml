@@ -30,9 +30,11 @@ singleuser:
         default_url: "/lab"
     - display_name: "Ubuntu Desktop (KasmVNC)"
       kubespawner_override:
-        image: kasmweb/ubuntu-noble-desktop:1.16.1
+        image: kasmvnc:1.5.0-noble
         cmd: null
-        port: 6901
+        port: 8443
+        supplemental_gids:
+          - 102
         environment:
           VNC_PW: "password"
           VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"

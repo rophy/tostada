@@ -148,7 +148,7 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 		} else {
 			connectURL = srv.URL + "?token=" + url.QueryEscape(token)
 			if ws != nil && (strings.Contains(ws.Image, "kasmvnc") || strings.Contains(ws.Image, "kasmweb")) {
-				wsPath := "api/ws" + srv.URL + "websockify"
+				wsPath := strings.TrimPrefix(srv.URL, "/") + "websockify"
 				connectURL += "&path=" + url.QueryEscape(wsPath)
 			}
 		}
