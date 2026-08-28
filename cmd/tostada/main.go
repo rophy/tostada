@@ -26,10 +26,11 @@ func main() {
 
 	// Retry OIDC discovery — sidecar proxy may not be ready yet
 	var authProvider *auth.Auth
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		authProvider, err = auth.NewAuth(
 			context.Background(),
 			cfg.OIDC.IssuerURL,
+			cfg.OIDC.InternalURL,
 			cfg.OIDC.ClientID,
 			cfg.OIDC.ClientSecret,
 			cfg.OIDC.RedirectURL,
@@ -37,7 +38,7 @@ func main() {
 		if err == nil {
 			break
 		}
-		log.Printf("OIDC discovery attempt %d/10 failed: %v", i+1, err)
+		log.Printf("OIDC discovery attempt %d/30 failed: %v", i+1, err)
 		time.Sleep(2 * time.Second)
 	}
 	if err != nil {

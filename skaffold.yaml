@@ -23,4 +23,5 @@ manifests:
         valuesFiles:
           - k8s/jupyterhub-values.yaml
 deploy:
-  kubectl: {}
+  kubectl:
+    defaultNamespace: tostada

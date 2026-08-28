@@ -9,11 +9,12 @@ data:
       addr: ":8080"
     oidc:
       issuerURL: "http://localhost:9090"
+      internalURL: ""
       clientID: "tostada"
       clientSecret: "tostada-secret"
       redirectURL: "http://localhost:8080/api/auth/callback"
     jupyterhub:
-      apiURL: "http://hub.default.svc.cluster.local:8081/hub/api"
+      apiURL: "http://hub:8081/hub/api"
       apiToken: "changeme-tostada-api-token"
     guacamole:
       url: "http://guacamole:8080"
@@ -60,6 +61,7 @@ spec:
     metadata:
       labels:
         app: tostada
+        hub.jupyter.org/network-access-hub: "true"
     spec:
       containers:
         - name: tostada

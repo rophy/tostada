@@ -21,6 +21,7 @@ type ServerConfig struct {
 
 type OIDCConfig struct {
 	IssuerURL    string `yaml:"issuerURL"`
+	InternalURL  string `yaml:"internalURL"`
 	ClientID     string `yaml:"clientID"`
 	ClientSecret string `yaml:"clientSecret"`
 	RedirectURL  string `yaml:"redirectURL"`

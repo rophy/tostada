@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,17 +33,30 @@ type session struct {
 	expiry   time.Time
 }
 
-func NewAuth(ctx context.Context, issuerURL, clientID, clientSecret, redirectURL string) (*Auth, error) {
-	provider, err := oidc.NewProvider(ctx, issuerURL)
+func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string) (*Auth, error) {
+	discoveryURL := issuerURL
+	if internalURL != "" {
+		discoveryURL = internalURL
+		ctx = oidc.InsecureIssuerURLContext(ctx, issuerURL)
+	}
+	provider, err := oidc.NewProvider(ctx, discoveryURL)
 	if err != nil {
 		return nil, err
 	}
+
+	endpoint := provider.Endpoint()
+	if internalURL != "" {
+		// AuthURL is browser-facing, must use public issuer URL
+		endpoint.AuthURL = strings.Replace(endpoint.AuthURL, internalURL, issuerURL, 1)
+		// TokenURL is server-to-server, keep internal (already from discovery)
+	}
+
 	return &Auth{
 		oauth2Config: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
 			RedirectURL:  redirectURL,
-			Endpoint:     provider.Endpoint(),
+			Endpoint:     endpoint,
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		},
 		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),

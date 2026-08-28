@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -24,7 +25,9 @@ func (h *sessionsHandler) list(w http.ResponseWriter, r *http.Request) {
 	username := auth.UserFromContext(r.Context())
 	user, err := h.hubClient.GetUser(username)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		log.Printf("GetUser(%s) failed: %v", username, err)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{})
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -55,7 +58,16 @@ func (h *sessionsHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.hubClient.SpawnServer(username, req.ServerName, ws.DisplayName); err != nil {
+	if err := h.hubClient.EnsureUser(username); err != nil {
+		log.Printf("EnsureUser(%s) failed: %v", username, err)
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	profileSlug := strings.ToLower(strings.ReplaceAll(ws.DisplayName, " ", "-"))
+	profileSlug = strings.ReplaceAll(profileSlug, "(", "")
+	profileSlug = strings.ReplaceAll(profileSlug, ")", "")
+	if err := h.hubClient.SpawnServer(username, req.ServerName, profileSlug); err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
@@ -106,6 +118,7 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 
 	var connectURL string
 	if ws != nil && ws.Type == "guacamole" {
+		// guacamole type: generate JSON auth token for guacamole
 		payload := guacamole.JSONAuthPayload{
 			Username: username,
 			Expires:  fmt.Sprintf("%d", time.Now().Add(5*time.Minute).UnixMilli()),
@@ -128,7 +141,13 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 		}
 		connectURL = fmt.Sprintf("%s/#/client/%s?token=%s", h.guacCfg.URL, serverName, url.QueryEscape(token))
 	} else {
-		connectURL = srv.URL
+		token, err := h.hubClient.CreateUserToken(username)
+		if err != nil {
+			log.Printf("CreateUserToken(%s) failed: %v", username, err)
+			connectURL = srv.URL
+		} else {
+			connectURL = srv.URL + "?token=" + url.QueryEscape(token)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -1,4 +1,6 @@
 hub:
+  networkPolicy:
+    interNamespaceAccessLabels: "accept"
   config:
     JupyterHub:
       allow_named_servers: true
@@ -15,6 +17,7 @@ hub:
         - "admin:users"
         - "admin:servers"
         - "read:users"
+        - "tokens"
       services:
         - tostada
 
