@@ -31,19 +31,11 @@ singleuser:
     - display_name: "Ubuntu Desktop (KasmVNC)"
       kubespawner_override:
         image: kasmweb/ubuntu-noble-desktop:1.16.1
-        cmd: ["/dockerstartup/kasm_default_profile.sh"]
+        cmd: null
         port: 6901
         environment:
           VNC_PW: "password"
-        storage_pvc_ensure: false
-        volume_mounts:
-          - name: kasmvnc-config
-            mountPath: /etc/kasmvnc/kasmvnc.yaml
-            subPath: kasmvnc.yaml
-        volumes:
-          - name: kasmvnc-config
-            configMap:
-              name: kasmvnc-config
+          VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
     - display_name: "Ubuntu Desktop (xRDP)"
       kubespawner_override:
         image: scottyhardy/docker-remote-desktop:latest
@@ -62,5 +54,9 @@ singleuser:
     capacity: 256Mi
 
 proxy:
+  chp:
+    extraCommandLineFlags:
+      - "--no-include-prefix"
+      - "--change-origin"
   service:
     type: NodePort

@@ -8,14 +8,16 @@ data:
     server:
       addr: ":8080"
     oidc:
-      issuerURL: "http://localhost:9090"
-      internalURL: ""
+      issuerURL: "https://tostada.example.com/oidc"
+      internalURL: "http://oidc-mock:8080"
       clientID: "tostada"
       clientSecret: "tostada-secret"
-      redirectURL: "http://localhost:8080/api/auth/callback"
+      redirectURL: "https://tostada.example.com/api/auth/callback"
     jupyterhub:
       apiURL: "http://hub:8081/hub/api"
       apiToken: "changeme-tostada-api-token"
+      proxyURL: "http://proxy-public:80"
+      proxyAPIURL: "http://proxy-api:8001"
     guacamole:
       url: "http://guacamole:8080"
       jsonSecretKey: "8bea5deb816809f814b83c28cf14d3e2"
@@ -62,12 +64,20 @@ spec:
       labels:
         app: tostada
         hub.jupyter.org/network-access-hub: "true"
+        hub.jupyter.org/network-access-proxy-api: "true"
+        hub.jupyter.org/network-access-singleuser: "true"
     spec:
       containers:
         - name: tostada
           image: tostada
           ports:
             - containerPort: 8080
+          env:
+            - name: PROXY_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hub
+                  key: hub.config.ConfigurableHTTPProxy.auth_token
           volumeMounts:
             - name: config
               mountPath: /etc/tostada
