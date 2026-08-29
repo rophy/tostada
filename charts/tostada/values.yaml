@@ -59,6 +59,8 @@ jupyterhub:
         enable_auth_state: true
         admin_users:
           - admin
+      KubeSpawner:
+        http_timeout: 120
     extraConfig:
       prefixProxy: |
         from jupyterhub.proxy import ConfigurableHTTPProxy
@@ -113,7 +115,7 @@ jupyterhub:
           port: 6901
           environment:
             VNC_PW: "password"
-            VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
+            VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
       - display_name: "Chrome Browser"
         kubespawner_override:
           image: kasmweb/chrome:1.19.0
@@ -121,9 +123,9 @@ jupyterhub:
           port: 6901
           environment:
             VNC_PW: "password"
-            VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
-            KASM_SVC_SEND_CUT_TEXT: "0"
-            KASM_SVC_ACCEPT_CUT_TEXT: "0"
+            VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
+            KASM_SVC_SEND_CUT_TEXT: "-SendCutText=0"
+            KASM_SVC_ACCEPT_CUT_TEXT: "-AcceptCutText=0"
     storage:
       capacity: 256Mi
 
