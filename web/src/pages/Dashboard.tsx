@@ -12,6 +12,7 @@ export function Dashboard() {
   const [sessions, setSessions] = useState<Record<string, Server>>({})
   const [devices, setDevices] = useState<Device[]>([])
   const [username, setUsername] = useState<string | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   const refresh = async () => {
     const [ws, sess, devs] = await Promise.all([fetchWorkspaces(), fetchSessions(), fetchDevices()])
@@ -21,8 +22,11 @@ export function Dashboard() {
   }
 
   useEffect(() => {
-    fetchCurrentUser().then(setUsername)
-    refresh()
+    fetchCurrentUser().then(user => {
+      setUsername(user)
+      setAuthChecked(true)
+      if (user) refresh()
+    })
   }, [])
 
   // Poll while any session is pending
@@ -49,19 +53,31 @@ export function Dashboard() {
     refresh()
   }
 
+  if (!authChecked) return null
+
+  if (!username) {
+    return (
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px', textAlign: 'center', marginTop: '100px' }}>
+        <h1>Tostada</h1>
+        <p style={{ margin: '24px 0' }}>Sign in to access your workspaces and devices.</p>
+        <a href="/api/auth/login" style={{
+          display: 'inline-block', padding: '12px 24px',
+          background: '#0066cc', color: '#fff', borderRadius: '6px',
+          textDecoration: 'none', fontSize: '16px',
+        }}>Login with OIDC</a>
+      </div>
+    )
+  }
+
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Tostada</h1>
         <div>
-          {username ? (
-            <span>
-              {username}{' '}
-              <button onClick={logout} style={{ marginLeft: '8px' }}>Logout</button>
-            </span>
-          ) : (
-            <a href="/api/auth/login">Login</a>
-          )}
+          <span>
+            {username}{' '}
+            <button onClick={logout} style={{ marginLeft: '8px' }}>Logout</button>
+          </span>
         </div>
       </div>
 

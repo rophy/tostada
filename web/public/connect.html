@@ -1,86 +1,301 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Device Connection</title>
 <style>
-* { margin: 0; padding: 0; }
-body { background: #000; overflow: hidden; }
-#display { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
-#status {
-  color: #aaa; position: fixed; top: 50%; left: 50%;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: sans-serif; }
+#display { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+#progress {
+  position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%); z-index: 50;
-  font-family: sans-serif; font-size: 18px;
+  background: rgba(0,0,0,0.85); border: 1px solid #333;
+  border-radius: 8px; padding: 20px;
+  width: 90vw; max-width: 600px;
+  max-height: 70vh; display: flex; flex-direction: column;
 }
-#status.error { color: #f66; }
-#toolbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  background: rgba(0,0,0,0.7); padding: 6px 12px;
-  display: flex; align-items: center; gap: 12px;
-  font-family: sans-serif; color: #ccc; font-size: 14px;
-  opacity: 0; transition: opacity 0.2s;
+#progress.hidden { display: none; }
+#progress h3 { color: #ccc; margin-bottom: 12px; font-size: 16px; }
+#log {
+  flex: 1; overflow-y: auto; font-family: monospace; font-size: 14px;
+  color: #aaa; line-height: 1.8; word-break: break-word;
 }
-#toolbar:hover { opacity: 1; }
-#toolbar button {
+#log .entry { padding: 2px 0; }
+#log .time { color: #666; margin-right: 8px; }
+#log .error { color: #f66; }
+#log .success { color: #6f6; }
+#log .info { color: #aaa; }
+#progress-actions {
+  margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;
+}
+#progress-actions button {
   background: #444; color: #fff; border: none;
-  padding: 4px 12px; border-radius: 4px; cursor: pointer;
+  padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 15px;
 }
-#toolbar button:hover { background: #666; }
+#progress-actions button:hover { background: #666; }
+#progress-actions button.primary { background: #0066cc; }
+#progress-actions button.primary:hover { background: #0077ee; }
+
+/* Side handle + popup panel */
+#sidebar-handle {
+  position: fixed; left: 0; z-index: 100;
+  width: 16px; height: 50px;
+  background: rgba(9,2,2,0.85);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+#sidebar-handle.visible { display: flex; }
+#sidebar-handle svg {
+  width: 10px; height: 10px;
+  transition: transform 0.3s ease-in-out;
+}
+#sidebar-handle.open svg {
+  transform: rotate(180deg);
+}
+
+#sidebar-panel {
+  position: fixed; left: 0; z-index: 99;
+  background: rgba(9,2,2,0.9);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  min-width: 160px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 4px 4px 12px rgba(0,0,0,0.5);
+}
+#sidebar-panel.open { display: flex; }
+
+#sidebar-panel .conn-name {
+  color: #ccc; font-size: 13px;
+  word-break: break-word;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 10px;
+}
+#sidebar-panel button {
+  background: #444; color: #fff; border: none;
+  padding: 8px 14px; border-radius: 4px; cursor: pointer;
+  font-size: 13px; text-align: left;
+}
+#sidebar-panel button:hover { background: #666; }
 </style>
 </head>
 <body>
-<div id="toolbar">
-  <span id="conn-name"></span>
+<div id="sidebar-handle">
+  <svg viewBox="0 0 10 16"><path d="M2 0 L10 8 L2 16" stroke="#ccc" stroke-width="2" fill="none"/></svg>
+</div>
+<div id="sidebar-panel">
+  <div class="conn-name" id="conn-name"></div>
   <button onclick="disconnect()">Disconnect</button>
 </div>
-<div id="status">Connecting...</div>
+<div id="progress">
+  <h3 id="progress-title">Connecting...</h3>
+  <div id="log"></div>
+  <div id="progress-actions"></div>
+</div>
 <div id="display"></div>
 <script src="/guacamole-common-js/all.min.js"></script>
 <script>
 var params = new URLSearchParams(window.location.search);
 var token = params.get("token");
 var connId = params.get("id");
+var guac;
+
+function log(msg, type) {
+  var logEl = document.getElementById("log");
+  var entry = document.createElement("div");
+  entry.className = "entry";
+  var now = new Date();
+  var time = now.toLocaleTimeString();
+  entry.innerHTML = '<span class="time">' + time + '</span><span class="' + (type || 'info') + '">' + msg + '</span>';
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setTitle(text) {
+  document.getElementById("progress-title").textContent = text;
+}
+
+function showProgress() {
+  document.getElementById("progress").classList.remove("hidden");
+  document.getElementById("sidebar-handle").classList.remove("visible", "open");
+  document.getElementById("sidebar-panel").classList.remove("open");
+}
+
+function hideProgress() {
+  document.getElementById("progress").classList.add("hidden");
+}
+
+function showSidebar() {
+  document.getElementById("sidebar-handle").classList.add("visible");
+}
+
+function toggleSidebar() {
+  var handle = document.getElementById("sidebar-handle");
+  var panel = document.getElementById("sidebar-panel");
+  var isOpen = handle.classList.toggle("open");
+  if (isOpen) {
+    var hr = handle.getBoundingClientRect();
+    panel.style.top = hr.top + "px";
+    panel.style.left = (hr.right) + "px";
+    panel.classList.add("open");
+  } else {
+    panel.classList.remove("open");
+  }
+}
+
+// Draggable handle
+(function() {
+  var handle = document.getElementById("sidebar-handle");
+  var dragging = false, startY = 0, startTop = 0, moved = false;
+
+  function getY(e) {
+    return e.touches ? e.touches[0].clientY : e.clientY;
+  }
+
+  function onStart(e) {
+    dragging = true; moved = false;
+    startY = getY(e);
+    startTop = handle.offsetTop;
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    var dy = getY(e) - startY;
+    if (Math.abs(dy) > 3) moved = true;
+    var newTop = Math.max(0, Math.min(window.innerHeight - handle.offsetHeight, startTop + dy));
+    handle.style.top = newTop + "px";
+    // reposition panel if open
+    var panel = document.getElementById("sidebar-panel");
+    if (panel.classList.contains("open")) {
+      panel.style.top = newTop + "px";
+    }
+  }
+
+  function onEnd(e) {
+    if (!dragging) return;
+    dragging = false;
+    if (!moved) toggleSidebar();
+  }
+
+  handle.addEventListener("mousedown", onStart);
+  handle.addEventListener("touchstart", onStart, { passive: false });
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("touchmove", onMove, { passive: false });
+  window.addEventListener("mouseup", onEnd);
+  window.addEventListener("touchend", onEnd);
+
+  // default position: vertically centered
+  handle.style.top = "calc(50vh - 25px)";
+})();
+
+function setActions(actions) {
+  var el = document.getElementById("progress-actions");
+  el.innerHTML = "";
+  actions.forEach(function(a) {
+    var btn = document.createElement("button");
+    btn.textContent = a.label;
+    if (a.primary) btn.className = "primary";
+    btn.onclick = a.action;
+    el.appendChild(btn);
+  });
+}
 
 if (!token || !connId) {
-  document.getElementById("status").textContent = "Missing token or connection ID";
-  document.getElementById("status").className = "error";
+  log("Missing token or connection ID", "error");
+  setTitle("Connection Failed");
 } else {
   document.getElementById("conn-name").textContent = connId;
+  log("Device: " + connId);
   startConnection(token, connId);
 }
 
-var guac;
-
 function startConnection(token, connId) {
+  log("Initializing tunnel...");
   var tunnelURL = location.origin + "/api/guacamole/tunnel";
   var tunnel = new Guacamole.HTTPTunnel(tunnelURL);
   guac = new Guacamole.Client(tunnel);
 
   var displayEl = document.getElementById("display");
   var guacDisplay = guac.getDisplay();
+  displayEl.innerHTML = "";
   displayEl.appendChild(guacDisplay.getElement());
 
+  var stateNames = {0:"Idle",1:"Connecting",2:"Waiting",3:"Connected",4:"Disconnecting",5:"Disconnected"};
+
   guac.onstatechange = function(state) {
-    var states = {0:"Idle",1:"Connecting",2:"Waiting",3:"Connected",4:"Disconnecting",5:"Disconnected"};
-    var statusEl = document.getElementById("status");
-    statusEl.textContent = states[state] || ("State: " + state);
-    if (state === 3) {
-      statusEl.style.display = "none";
-      document.getElementById("toolbar").style.opacity = "";
-    }
-    if (state === 5) {
-      statusEl.style.display = "";
-      statusEl.textContent = "Disconnected";
+    var name = stateNames[state] || ("Unknown state: " + state);
+    if (state === 1) {
+      log("Connecting to remote desktop...");
+      setTitle("Connecting...");
+    } else if (state === 2) {
+      log("Waiting for server response...");
+      setTitle("Waiting...");
+    } else if (state === 3) {
+      log("Connected successfully", "success");
+      setTitle("Connected");
+      setTimeout(function() {
+        hideProgress();
+        showSidebar();
+      }, 800);
+    } else if (state === 4) {
+      log("Disconnecting...");
+      setTitle("Disconnecting...");
+      showProgress();
+    } else if (state === 5) {
+      log("Disconnected", "info");
+      setTitle("Disconnected");
+      showProgress();
+      setActions([
+        { label: "Reconnect", primary: true, action: function() { reconnect(); } },
+        { label: "Close", action: function() { window.close(); } },
+      ]);
     }
   };
 
   guac.onerror = function(err) {
-    var statusEl = document.getElementById("status");
-    statusEl.textContent = "Error: " + (err.message || JSON.stringify(err));
-    statusEl.className = "error";
-    statusEl.style.display = "";
+    var msg = err.message || JSON.stringify(err);
+    log("Error: " + msg, "error");
+    if (err.statusCode) {
+      var codes = {
+        256: "Unsupported protocol",
+        512: "Server error",
+        513: "Server busy",
+        514: "Upstream timeout",
+        515: "Upstream error",
+        516: "Resource not found",
+        517: "Resource conflict",
+        768: "Session closed",
+        769: "Session timeout",
+        771: "Client too many connections",
+        776: "Client timeout",
+      };
+      if (codes[err.statusCode]) {
+        log("Reason: " + codes[err.statusCode], "error");
+      }
+    }
+    setTitle("Connection Failed");
+    showProgress();
+    setActions([
+      { label: "Reconnect", primary: true, action: function() { reconnect(); } },
+      { label: "Close", action: function() { window.close(); } },
+    ]);
   };
 
-  // Scale display to fit window
+  tunnel.onerror = function(err) {
+    var msg = err.message || "Tunnel error";
+    log("Tunnel: " + msg, "error");
+  };
+
   guacDisplay.onresize = function(width, height) {
     var scale = Math.min(window.innerWidth / width, window.innerHeight / height);
     guacDisplay.scale(scale);
@@ -95,17 +310,23 @@ function startConnection(token, connId) {
     }
   });
 
-  // Keyboard
   var keyboard = new Guacamole.Keyboard(document);
   keyboard.onkeydown = function(keysym) { guac.sendKeyEvent(1, keysym); };
   keyboard.onkeyup = function(keysym) { guac.sendKeyEvent(0, keysym); };
 
-  // Mouse
-  var mouse = new Guacamole.Mouse(guacDisplay.getElement());
+  var displayElement = guacDisplay.getElement();
+
+  var mouse = new Guacamole.Mouse(displayElement);
   mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function(mouseState) {
     guac.sendMouseState(mouseState);
   };
 
+  var touch = new Guacamole.Mouse.Touchscreen(displayElement);
+  touch.onmousedown = touch.onmouseup = touch.onmousemove = function(mouseState) {
+    guac.sendMouseState(mouseState);
+  };
+
+  log("Authenticating...");
   var connectParams = "token=" + encodeURIComponent(token)
     + "&GUAC_DATA_SOURCE=json"
     + "&GUAC_ID=" + encodeURIComponent(connId)
@@ -115,6 +336,19 @@ function startConnection(token, connId) {
     + "&GUAC_DPI=96";
 
   guac.connect(connectParams);
+}
+
+function reconnect() {
+  if (guac) {
+    try { guac.disconnect(); } catch(e) {}
+  }
+  document.getElementById("sidebar-handle").classList.remove("visible", "open");
+  document.getElementById("sidebar-panel").classList.remove("open");
+  setActions([]);
+  log("---");
+  log("Reconnecting...");
+  setTitle("Connecting...");
+  startConnection(token, connId);
 }
 
 function disconnect() {

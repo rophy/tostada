@@ -17,19 +17,13 @@ export interface Server {
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const res = await fetch('/api/workspaces')
-  if (res.status === 401) {
-    window.location.href = '/api/auth/login'
-    return []
-  }
+  if (res.status === 401) return []
   return res.json()
 }
 
 export async function fetchSessions(): Promise<Record<string, Server>> {
   const res = await fetch('/api/sessions')
-  if (res.status === 401) {
-    window.location.href = '/api/auth/login'
-    return {}
-  }
+  if (res.status === 401) return {}
   return res.json()
 }
 
