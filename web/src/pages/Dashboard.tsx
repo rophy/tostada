@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Workspace, Server,
-  fetchWorkspaces, fetchSessions,
-  launchWorkspace, stopSession, getConnectURL,
+  fetchWorkspaces, fetchSessions, fetchCurrentUser,
+  launchWorkspace, stopSession, getConnectURL, logout,
 } from '../api'
 import { WorkspaceCard } from '../components/WorkspaceCard'
 import { SessionList } from '../components/SessionList'
@@ -10,6 +10,7 @@ import { SessionList } from '../components/SessionList'
 export function Dashboard() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [sessions, setSessions] = useState<Record<string, Server>>({})
+  const [username, setUsername] = useState<string | null>(null)
 
   const refresh = async () => {
     const [ws, sess] = await Promise.all([fetchWorkspaces(), fetchSessions()])
@@ -17,7 +18,10 @@ export function Dashboard() {
     setSessions(sess)
   }
 
-  useEffect(() => { refresh() }, [])
+  useEffect(() => {
+    fetchCurrentUser().then(setUsername)
+    refresh()
+  }, [])
 
   // Poll while any session is pending
   useEffect(() => {
@@ -45,7 +49,19 @@ export function Dashboard() {
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px' }}>
-      <h1>Tostada</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Tostada</h1>
+        <div>
+          {username ? (
+            <span>
+              {username}{' '}
+              <button onClick={logout} style={{ marginLeft: '8px' }}>Logout</button>
+            </span>
+          ) : (
+            <a href="/api/auth/login">Login</a>
+          )}
+        </div>
+      </div>
 
       <h2>Workspaces</h2>
       <div style={{

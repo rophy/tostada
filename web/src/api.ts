@@ -50,3 +50,15 @@ export async function getConnectURL(name: string): Promise<string> {
   const data = await res.json()
   return data.url
 }
+
+export async function fetchCurrentUser(): Promise<string | null> {
+  const res = await fetch('/api/auth/me')
+  if (res.status === 401) return null
+  const data = await res.json()
+  return data.username
+}
+
+export async function logout(): Promise<void> {
+  await fetch('/api/auth/logout', { method: 'POST' })
+  window.location.href = '/'
+}

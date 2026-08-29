@@ -161,6 +161,24 @@ func WithUser(ctx context.Context, username string) context.Context {
 	return context.WithValue(ctx, userContextKey, username)
 }
 
+func (a *Auth) LogoutHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(sessionCookie)
+		if err == nil {
+			a.mu.Lock()
+			delete(a.sessions, cookie.Value)
+			a.mu.Unlock()
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:   sessionCookie,
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		})
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
 func (a *Auth) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	username := UserFromContext(r.Context())
 	w.Header().Set("Content-Type", "application/json")

@@ -15,6 +15,7 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())
 	mux.HandleFunc("GET /api/auth/callback", authProvider.CallbackHandler())
+	mux.HandleFunc("POST /api/auth/logout", authProvider.LogoutHandler())
 
 	sessions := &sessionsHandler{
 		hubClient:  hubClient,
