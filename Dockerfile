@@ -16,6 +16,7 @@ RUN CGO_ENABLED=0 go build -o /tostada-cli ./cmd/tostada-cli/
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
+ENV TOSTADA_DB=/data/tostada.db
 COPY --from=backend /tostada /tostada
 COPY --from=backend /tostada-cli /tostada-cli
 COPY config.yaml /etc/tostada/config.yaml
