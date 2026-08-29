@@ -157,6 +157,10 @@ func UserFromContext(ctx context.Context) string {
 	return v
 }
 
+func WithUser(ctx context.Context, username string) context.Context {
+	return context.WithValue(ctx, userContextKey, username)
+}
+
 func (a *Auth) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	username := UserFromContext(r.Context())
 	w.Header().Set("Content-Type", "application/json")

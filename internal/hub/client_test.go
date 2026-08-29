@@ -18,7 +18,12 @@ func TestGetUser(t *testing.T) {
 		json.NewEncoder(w).Encode(User{
 			Name: "alice",
 			Servers: map[string]Server{
-				"my-notebook": {Name: "my-notebook", Ready: true, URL: "/user/alice/my-notebook/"},
+				"my-notebook": {
+					Name:        "my-notebook",
+					Ready:       true,
+					URL:         "/user/alice/my-notebook/",
+					UserOptions: map[string]string{"profile": "jupyter-notebook"},
+				},
 			},
 		})
 	}))
@@ -38,6 +43,9 @@ func TestGetUser(t *testing.T) {
 	s := user.Servers["my-notebook"]
 	if !s.Ready || s.URL != "/user/alice/my-notebook/" {
 		t.Errorf("Server = %+v", s)
+	}
+	if s.UserOptions["profile"] != "jupyter-notebook" {
+		t.Errorf("UserOptions[profile] = %q, want %q", s.UserOptions["profile"], "jupyter-notebook")
 	}
 }
 
