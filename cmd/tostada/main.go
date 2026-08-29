@@ -11,6 +11,7 @@ import (
 	"github.com/rophy/tostada/internal/api"
 	"github.com/rophy/tostada/internal/auth"
 	"github.com/rophy/tostada/internal/config"
+	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/web"
 )
@@ -47,7 +48,21 @@ func main() {
 
 	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, cfg.JupyterHub.APIToken)
 
-	mux := api.NewRouter(cfg, hubClient, authProvider)
+	dbPath := cfg.Database.Path
+	if dbPath == "" {
+		dbPath = "tostada.db"
+	}
+	deviceStore, err := device.NewGormStore(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize device store: %v", err)
+	}
+	if len(cfg.Devices) > 0 {
+		if err := deviceStore.SyncFromConfig(cfg.Devices); err != nil {
+			log.Fatalf("Failed to sync devices: %v", err)
+		}
+	}
+
+	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore)
 
 	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {

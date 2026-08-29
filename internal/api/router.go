@@ -7,10 +7,11 @@ import (
 
 	"github.com/rophy/tostada/internal/auth"
 	"github.com/rophy/tostada/internal/config"
+	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 )
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth) *http.ServeMux {
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.Store) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())
@@ -30,6 +31,13 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	authed.HandleFunc("POST /api/sessions", sessions.create)
 	authed.HandleFunc("DELETE /api/sessions/{name}", sessions.stop)
 	authed.HandleFunc("GET /api/sessions/{name}/connect", sessions.connect)
+
+	devices := &devicesHandler{
+		store:   deviceStore,
+		guacCfg: cfg.Guacamole,
+	}
+	authed.HandleFunc("GET /api/devices", devices.list)
+	authed.HandleFunc("GET /api/devices/{name}/connect", devices.connect)
 
 	mux.Handle("/api/", authProvider.Middleware(authed))
 

@@ -62,3 +62,23 @@ export async function logout(): Promise<void> {
   await fetch('/api/auth/logout', { method: 'POST' })
   window.location.href = '/'
 }
+
+export interface Device {
+  name: string
+  displayName: string
+  protocol: string
+  host: string
+  port: number
+}
+
+export async function fetchDevices(): Promise<Device[]> {
+  const res = await fetch('/api/devices')
+  if (res.status === 401) return []
+  return res.json()
+}
+
+export async function getDeviceConnectURL(name: string): Promise<string> {
+  const res = await fetch(`/api/devices/${name}/connect`)
+  const data = await res.json()
+  return data.url
+}

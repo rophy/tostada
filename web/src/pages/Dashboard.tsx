@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
-  Workspace, Server,
-  fetchWorkspaces, fetchSessions, fetchCurrentUser,
-  launchWorkspace, stopSession, getConnectURL, logout,
+  Workspace, Server, Device,
+  fetchWorkspaces, fetchSessions, fetchCurrentUser, fetchDevices,
+  launchWorkspace, stopSession, getConnectURL, getDeviceConnectURL, logout,
 } from '../api'
 import { WorkspaceCard } from '../components/WorkspaceCard'
 import { SessionList } from '../components/SessionList'
@@ -10,12 +10,14 @@ import { SessionList } from '../components/SessionList'
 export function Dashboard() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [sessions, setSessions] = useState<Record<string, Server>>({})
+  const [devices, setDevices] = useState<Device[]>([])
   const [username, setUsername] = useState<string | null>(null)
 
   const refresh = async () => {
-    const [ws, sess] = await Promise.all([fetchWorkspaces(), fetchSessions()])
+    const [ws, sess, devs] = await Promise.all([fetchWorkspaces(), fetchSessions(), fetchDevices()])
     setWorkspaces(ws)
     setSessions(sess)
+    setDevices(devs)
   }
 
   useEffect(() => {
@@ -75,6 +77,35 @@ export function Dashboard() {
       </div>
 
       <SessionList sessions={sessions} onConnect={handleConnect} onStop={handleStop} />
+
+      {devices.length > 0 && (
+        <>
+          <h2>Devices</h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Name</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Protocol</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map(d => (
+                <tr key={d.name}>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.displayName}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.protocol.toUpperCase()}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                    <button onClick={async () => {
+                      const url = await getDeviceConnectURL(d.name)
+                      window.open(url, '_blank')
+                    }}>Connect</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   )
 }

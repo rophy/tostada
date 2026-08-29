@@ -20,6 +20,8 @@ data:
     guacamole:
       url: "http://guacamole:8080"
       jsonSecretKey: "8bea5deb816809f814b83c28cf14d3e2"
+    database:
+      path: "/data/tostada.db"
     workspaces:
       - name: jupyter
         displayName: Jupyter Notebook
@@ -63,6 +65,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/tostada
+            - name: data
+              mountPath: /data
         - name: oidc-proxy
           image: alpine/socat:latest
           args: ["TCP-LISTEN:9090,fork,reuseaddr", "TCP:oidc-mock:8080"]
@@ -70,6 +74,8 @@ spec:
         - name: config
           configMap:
             name: tostada-config
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
