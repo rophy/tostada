@@ -13,9 +13,19 @@ type GormStore struct {
 	db *gorm.DB
 }
 
-func NewGormStore(dbPath string) (*GormStore, error) {
+type Option func(*logger.LogLevel)
+
+func WithSilentLogger() Option {
+	return func(l *logger.LogLevel) { *l = logger.Silent }
+}
+
+func NewGormStore(dbPath string, opts ...Option) (*GormStore, error) {
+	logLevel := logger.Warn
+	for _, o := range opts {
+		o(&logLevel)
+	}
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)

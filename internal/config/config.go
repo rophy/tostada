@@ -14,7 +14,6 @@ type Config struct {
 	Guacamole  GuacamoleConfig  `yaml:"guacamole"`
 	Database   DatabaseConfig   `yaml:"database"`
 	Workspaces []Workspace      `yaml:"workspaces"`
-	Devices    []DeviceConfig   `yaml:"devices"`
 }
 
 type DatabaseConfig struct {
@@ -42,17 +41,6 @@ type JupyterHubConfig struct {
 type GuacamoleConfig struct {
 	URL           string `yaml:"url"`
 	JSONSecretKey string `yaml:"jsonSecretKey"`
-}
-
-type DeviceConfig struct {
-	Name         string   `yaml:"name"`
-	DisplayName  string   `yaml:"displayName"`
-	Protocol     string   `yaml:"protocol"`
-	Host         string   `yaml:"host"`
-	Port         int      `yaml:"port"`
-	Username     string   `yaml:"username"`
-	Password     string   `yaml:"password"`
-	AllowedUsers []string `yaml:"allowedUsers"`
 }
 
 type Workspace struct {

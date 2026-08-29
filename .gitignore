@@ -1,2 +1,3 @@
 docker-compose.yaml
 nginx.conf
+*.db

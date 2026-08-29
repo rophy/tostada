@@ -56,11 +56,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize device store: %v", err)
 	}
-	if len(cfg.Devices) > 0 {
-		if err := deviceStore.SyncFromConfig(cfg.Devices); err != nil {
-			log.Fatalf("Failed to sync devices: %v", err)
-		}
-	}
 
 	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore)
 
