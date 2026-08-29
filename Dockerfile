@@ -12,9 +12,11 @@ RUN go mod download
 COPY . .
 COPY --from=frontend /app/web/dist ./web/dist
 RUN CGO_ENABLED=0 go build -o /tostada ./cmd/tostada/
+RUN CGO_ENABLED=0 go build -o /tostada-cli ./cmd/tostada-cli/
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 COPY --from=backend /tostada /tostada
+COPY --from=backend /tostada-cli /tostada-cli
 COPY config.yaml /etc/tostada/config.yaml
 ENTRYPOINT ["/tostada", "-config", "/etc/tostada/config.yaml"]
