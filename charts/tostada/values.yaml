@@ -1,0 +1,149 @@
+domain: tostada.example.com
+
+tostada:
+  image: tostada
+  imagePullPolicy: IfNotPresent
+
+oidc:
+  clientID: "tostada"
+  clientSecret: "tostada-secret"
+  redirectURL: "https://tostada.example.com/api/auth/callback"
+
+guacamole:
+  url: "http://guacamole:8080"
+  jsonSecretKey: "change-me-hex-key"
+  guacd:
+    image: guacamole/guacd:1.6.0
+  web:
+    image: guacamole/guacamole:1.6.0
+
+database:
+  path: "/data/tostada.db"
+
+oidcMock:
+  enabled: true
+  image: ghcr.io/rophy/oidc-mock:latest
+  users:
+    - sub: alice
+      email: alice@example.com
+      name: Alice
+      preferred_username: alice
+    - sub: bob
+      email: bob@example.com
+      name: Bob
+      preferred_username: bob
+
+workspaces:
+  - name: jupyter
+    displayName: Jupyter Notebook
+    description: Python data science environment
+    icon: notebook
+    type: jupyterhub
+    image: jupyter/minimal-notebook:latest
+    port: 8888
+    cmd: ["jupyterhub-singleuser"]
+  - name: kasmvnc-ubuntu
+    displayName: Ubuntu Desktop (KasmVNC)
+    description: Full Ubuntu desktop in browser
+    icon: desktop
+    type: jupyterhub
+    image: kasmweb/ubuntu-noble-desktop:1.19.0
+    port: 6901
+    cmd: ["/dockerstartup/kasm_default_profile.sh"]
+  - name: kasmvnc-chrome
+    displayName: Chrome Browser
+    description: Isolated Chrome browser with clipboard disabled
+    icon: browser
+    type: jupyterhub
+    image: kasmweb/chrome:1.19.0
+    port: 6901
+    cmd: ["/dockerstartup/kasm_default_profile.sh"]
+
+vncPassword: "password"
+
+jupyterhub:
+  hub:
+    networkPolicy:
+      interNamespaceAccessLabels: "accept"
+    config:
+      JupyterHub:
+        allow_named_servers: true
+      Authenticator:
+        enable_auth_state: true
+        admin_users:
+          - admin
+    extraConfig:
+      prefixProxy: |
+        from jupyterhub.proxy import ConfigurableHTTPProxy
+
+        class PrefixAwareProxy(ConfigurableHTTPProxy):
+            """Compensate for --no-include-prefix on a per-route basis."""
+            no_prefix_images = {"kasmvnc", "kasmweb"}
+
+            def _serves_from_root(self, username, server_name):
+                user = self.app.users.get(username)
+                if not user:
+                    return False
+                spawner = user.spawners.get(server_name)
+                if not spawner:
+                    return False
+                image = getattr(spawner, "image", "") or ""
+                return any(tag in image.lower() for tag in self.no_prefix_images)
+
+            async def add_route(self, routespec, target, data):
+                if data and "user" in data:
+                    username = data["user"]
+                    server_name = data.get("server_name", "")
+                    if not self._serves_from_root(username, server_name):
+                        target = target.rstrip("/") + routespec
+                await super().add_route(routespec, target, data)
+
+        c.JupyterHub.proxy_class = PrefixAwareProxy
+    services:
+      tostada:
+        api_token: "changeme-tostada-api-token"
+    loadRoles:
+      tostada-service:
+        scopes:
+          - "admin:users"
+          - "admin:servers"
+          - "read:users"
+          - "tokens"
+        services:
+          - tostada
+
+  singleuser:
+    profileList:
+      - display_name: "Jupyter Notebook"
+        kubespawner_override:
+          image: jupyter/minimal-notebook:latest
+          cmd: ["jupyterhub-singleuser"]
+          default_url: "/lab"
+      - display_name: "Ubuntu Desktop (KasmVNC)"
+        kubespawner_override:
+          image: kasmweb/ubuntu-noble-desktop:1.19.0
+          cmd: null
+          port: 6901
+          environment:
+            VNC_PW: "password"
+            VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
+      - display_name: "Chrome Browser"
+        kubespawner_override:
+          image: kasmweb/chrome:1.19.0
+          cmd: null
+          port: 6901
+          environment:
+            VNC_PW: "password"
+            VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
+            KASM_SVC_SEND_CUT_TEXT: "0"
+            KASM_SVC_ACCEPT_CUT_TEXT: "0"
+    storage:
+      capacity: 256Mi
+
+  proxy:
+    chp:
+      extraCommandLineFlags:
+        - "--no-include-prefix"
+        - "--change-origin"
+    service:
+      type: NodePort

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tostada
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tostada
+  template:
+    metadata:
+      labels:
+        app: tostada
+        hub.jupyter.org/network-access-hub: "true"
+        hub.jupyter.org/network-access-singleuser: "true"
+      annotations:
+        checksum/config: {{ include (print .Template.BasePath "/tostada-configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: tostada
+          image: {{ .Values.tostada.image }}
+          imagePullPolicy: {{ .Values.tostada.imagePullPolicy }}
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tostada
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: tostada-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tostada
+spec:
+  selector:
+    app: tostada
+  ports:
+    - port: 8080
+      targetPort: 8080

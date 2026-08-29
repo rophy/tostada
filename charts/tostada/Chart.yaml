@@ -1,0 +1,9 @@
+apiVersion: v2
+name: tostada
+description: Tostada workspace portal
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: jupyterhub
+    version: "4.4.0"
+    repository: https://hub.jupyter.org/helm-chart/

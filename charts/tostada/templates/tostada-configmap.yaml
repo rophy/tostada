@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tostada-config
+data:
+  config.yaml: |
+    server:
+      addr: ":8080"
+    oidc:
+      issuerURL: "https://{{ .Values.domain }}"
+      internalURL: "http://oidc-mock:8080"
+      clientID: {{ .Values.oidc.clientID | quote }}
+      clientSecret: {{ .Values.oidc.clientSecret | quote }}
+      redirectURL: "https://{{ .Values.domain }}/api/auth/callback"
+    jupyterhub:
+      apiURL: "http://hub:8081/hub/api"
+      apiToken: {{ .Values.jupyterhub.hub.services.tostada.api_token | quote }}
+      proxyURL: "http://proxy-public:80"
+    guacamole:
+      url: {{ .Values.guacamole.url | quote }}
+      jsonSecretKey: {{ .Values.guacamole.jsonSecretKey | quote }}
+    database:
+      path: {{ .Values.database.path | quote }}
+    workspaces:
+      {{- toYaml .Values.workspaces | nindent 6 }}

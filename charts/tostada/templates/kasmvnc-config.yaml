@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kasmvnc-proxy-config
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        location ~ ^/user/[^/]+/[^/]+/(.*) {
+            proxy_pass https://127.0.0.1:6901/$1;
+            proxy_ssl_verify off;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_read_timeout 86400;
+        }
+        location ~ ^/user/[^/]+/[^/]+/?$ {
+            proxy_pass https://127.0.0.1:6901/;
+            proxy_ssl_verify off;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_read_timeout 86400;
+        }
+    }
