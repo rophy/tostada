@@ -1,0 +1,8 @@
+#!/bin/sh
+# Scan staged changes for secrets before committing.
+# Requires gitleaks: https://github.com/gitleaks/gitleaks
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --config .gitleaks.toml
+else
+  echo "WARNING: gitleaks not found, skipping secret scan"
+fi

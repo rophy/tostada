@@ -1,0 +1,8 @@
+[allowlist]
+description = "Allowlisted dev/test secrets"
+regexes = [
+  '''8bea5deb816809f814b83c28cf14d3e2''',
+]
+paths = [
+  '''docs/superpowers/.*''',
+]
