@@ -15,26 +15,6 @@ data:
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
-        location = /.well-known/openid-configuration {
-            proxy_pass http://oidc-mock:8080;
-            proxy_set_header Host $host;
-        }
-        location /authorize {
-            proxy_pass http://oidc-mock:8080$request_uri;
-            proxy_set_header Host $host;
-        }
-        location /token {
-            proxy_pass http://oidc-mock:8080$request_uri;
-            proxy_set_header Host $host;
-        }
-        location = /jwks {
-            proxy_pass http://oidc-mock:8080;
-            proxy_set_header Host $host;
-        }
-        location = /userinfo {
-            proxy_pass http://oidc-mock:8080;
-            proxy_set_header Host $host;
-        }
         location /user/ {
             proxy_pass http://proxy-public:80;
             proxy_set_header Host $host;
@@ -74,8 +54,6 @@ spec:
         app: gateway
         hub.jupyter.org/network-access-hub: "true"
         hub.jupyter.org/network-access-proxy-http: "true"
-      annotations:
-        checksum/config: {{ include (print .Template.BasePath "/gateway.yaml") . | sha256sum }}
     spec:
       containers:
         - name: nginx
@@ -95,6 +73,7 @@ kind: Service
 metadata:
   name: gateway
 spec:
+  type: NodePort
   selector:
     app: gateway
   ports:

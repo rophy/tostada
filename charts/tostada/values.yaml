@@ -20,19 +20,6 @@ guacamole:
 database:
   path: "/data/tostada.db"
 
-oidcMock:
-  enabled: true
-  image: ghcr.io/rophy/oidc-mock:latest
-  users:
-    - sub: alice
-      email: alice@example.com
-      name: Alice
-      preferred_username: alice
-    - sub: bob
-      email: bob@example.com
-      name: Bob
-      preferred_username: bob
-
 workspaces:
   - name: jupyter
     displayName: Jupyter Notebook

@@ -1,6 +1,5 @@
-docker-compose.yaml
-nginx.conf
 *.db
+.env
 charts/tostada/charts/
 charts/tostada/Chart.lock
-values-local.yaml
+charts/tostada/values-local.yaml
