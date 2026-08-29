@@ -9,7 +9,7 @@ type Device struct {
 	Protocol string `gorm:"not null" json:"protocol"`
 	Host     string `gorm:"not null" json:"host"`
 	Port     int    `gorm:"not null" json:"port"`
-	Username string `gorm:"not null" json:"-"`
+	Username string `gorm:"not null" json:"username"`
 	Password string `gorm:"not null" json:"-"`
 }
 

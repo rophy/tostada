@@ -85,6 +85,8 @@ export function Dashboard() {
             <thead>
               <tr>
                 <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Name</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Host</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>User</th>
                 <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Protocol</th>
                 <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Actions</th>
               </tr>
@@ -93,6 +95,8 @@ export function Dashboard() {
               {devices.map(d => (
                 <tr key={d.name}>
                   <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.displayName}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.host}:{d.port}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.username}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.protocol.toUpperCase()}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
                     <button onClick={async () => {

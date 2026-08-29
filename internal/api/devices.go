@@ -45,10 +45,11 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 			d.Name: {
 				Protocol: d.Protocol,
 				Parameters: map[string]string{
-					"hostname": d.Host,
-					"port":     fmt.Sprintf("%d", d.Port),
-					"username": d.Username,
-					"password": d.Password,
+					"hostname":    d.Host,
+					"port":        fmt.Sprintf("%d", d.Port),
+					"username":    d.Username,
+					"password":    d.Password,
+					"ignore-cert": "true",
 				},
 			},
 		},

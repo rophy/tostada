@@ -69,6 +69,7 @@ export interface Device {
   protocol: string
   host: string
   port: number
+  username: string
 }
 
 export async function fetchDevices(): Promise<Device[]> {
