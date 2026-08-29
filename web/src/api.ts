@@ -77,8 +77,7 @@ export async function fetchDevices(): Promise<Device[]> {
   return res.json()
 }
 
-export async function getDeviceConnectURL(name: string): Promise<string> {
+export async function getDeviceConnectInfo(name: string): Promise<{ token: string; connectionId: string }> {
   const res = await fetch(`/api/devices/${name}/connect`)
-  const data = await res.json()
-  return data.url
+  return res.json()
 }

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Device Connection</title>
+<style>
+* { margin: 0; padding: 0; }
+body { background: #000; overflow: hidden; }
+#display { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+#status {
+  color: #aaa; position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); z-index: 50;
+  font-family: sans-serif; font-size: 18px;
+}
+#status.error { color: #f66; }
+#toolbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(0,0,0,0.7); padding: 6px 12px;
+  display: flex; align-items: center; gap: 12px;
+  font-family: sans-serif; color: #ccc; font-size: 14px;
+  opacity: 0; transition: opacity 0.2s;
+}
+#toolbar:hover { opacity: 1; }
+#toolbar button {
+  background: #444; color: #fff; border: none;
+  padding: 4px 12px; border-radius: 4px; cursor: pointer;
+}
+#toolbar button:hover { background: #666; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <span id="conn-name"></span>
+  <button onclick="disconnect()">Disconnect</button>
+</div>
+<div id="status">Connecting...</div>
+<div id="display"></div>
+<script src="/guacamole-common-js/all.min.js"></script>
+<script>
+var params = new URLSearchParams(window.location.search);
+var token = params.get("token");
+var connId = params.get("id");
+
+if (!token || !connId) {
+  document.getElementById("status").textContent = "Missing token or connection ID";
+  document.getElementById("status").className = "error";
+} else {
+  document.getElementById("conn-name").textContent = connId;
+  startConnection(token, connId);
+}
+
+var guac;
+
+function startConnection(token, connId) {
+  var tunnelURL = location.origin + "/api/guacamole/tunnel";
+  var tunnel = new Guacamole.HTTPTunnel(tunnelURL);
+  guac = new Guacamole.Client(tunnel);
+
+  var displayEl = document.getElementById("display");
+  var guacDisplay = guac.getDisplay();
+  displayEl.appendChild(guacDisplay.getElement());
+
+  guac.onstatechange = function(state) {
+    var states = {0:"Idle",1:"Connecting",2:"Waiting",3:"Connected",4:"Disconnecting",5:"Disconnected"};
+    var statusEl = document.getElementById("status");
+    statusEl.textContent = states[state] || ("State: " + state);
+    if (state === 3) {
+      statusEl.style.display = "none";
+      document.getElementById("toolbar").style.opacity = "";
+    }
+    if (state === 5) {
+      statusEl.style.display = "";
+      statusEl.textContent = "Disconnected";
+    }
+  };
+
+  guac.onerror = function(err) {
+    var statusEl = document.getElementById("status");
+    statusEl.textContent = "Error: " + (err.message || JSON.stringify(err));
+    statusEl.className = "error";
+    statusEl.style.display = "";
+  };
+
+  // Scale display to fit window
+  guacDisplay.onresize = function(width, height) {
+    var scale = Math.min(window.innerWidth / width, window.innerHeight / height);
+    guacDisplay.scale(scale);
+  };
+
+  window.addEventListener("resize", function() {
+    var width = guacDisplay.getWidth();
+    var height = guacDisplay.getHeight();
+    if (width && height) {
+      var scale = Math.min(window.innerWidth / width, window.innerHeight / height);
+      guacDisplay.scale(scale);
+    }
+  });
+
+  // Keyboard
+  var keyboard = new Guacamole.Keyboard(document);
+  keyboard.onkeydown = function(keysym) { guac.sendKeyEvent(1, keysym); };
+  keyboard.onkeyup = function(keysym) { guac.sendKeyEvent(0, keysym); };
+
+  // Mouse
+  var mouse = new Guacamole.Mouse(guacDisplay.getElement());
+  mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function(mouseState) {
+    guac.sendMouseState(mouseState);
+  };
+
+  var connectParams = "token=" + encodeURIComponent(token)
+    + "&GUAC_DATA_SOURCE=json"
+    + "&GUAC_ID=" + encodeURIComponent(connId)
+    + "&GUAC_TYPE=c"
+    + "&GUAC_WIDTH=" + window.innerWidth
+    + "&GUAC_HEIGHT=" + window.innerHeight
+    + "&GUAC_DPI=96";
+
+  guac.connect(connectParams);
+}
+
+function disconnect() {
+  if (guac) guac.disconnect();
+  window.close();
+}
+
+window.addEventListener("beforeunload", function() {
+  if (guac) guac.disconnect();
+});
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Workspace, Server, Device,
   fetchWorkspaces, fetchSessions, fetchCurrentUser, fetchDevices,
-  launchWorkspace, stopSession, getConnectURL, getDeviceConnectURL, logout,
+  launchWorkspace, stopSession, getConnectURL, getDeviceConnectInfo, logout,
 } from '../api'
 import { WorkspaceCard } from '../components/WorkspaceCard'
 import { SessionList } from '../components/SessionList'
@@ -96,8 +96,9 @@ export function Dashboard() {
                   <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.protocol.toUpperCase()}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
                     <button onClick={async () => {
-                      const url = await getDeviceConnectURL(d.name)
-                      window.open(url, '_blank')
+                      const info = await getDeviceConnectInfo(d.name)
+                      const params = new URLSearchParams({ token: info.token, id: info.connectionId })
+                      window.open(`/connect.html?${params}`, '_blank')
                     }}>Connect</button>
                   </td>
                 </tr>

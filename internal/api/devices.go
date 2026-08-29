@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/rophy/tostada/internal/auth"
@@ -61,8 +60,15 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectURL := fmt.Sprintf("%s/#/client/%s?token=%s", h.guacCfg.URL, d.Name, url.QueryEscape(token))
+	authToken, err := guacamole.ExchangeToken(h.guacCfg.URL, token)
+	if err != nil {
+		http.Error(w, "token exchange failed", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"url": connectURL})
+	json.NewEncoder(w).Encode(map[string]string{
+		"token":        authToken,
+		"connectionId": d.Name,
+	})
 }
