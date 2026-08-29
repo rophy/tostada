@@ -8,6 +8,40 @@ hub:
       enable_auth_state: true
       admin_users:
         - admin
+  extraConfig:
+    prefixProxy: |
+      from jupyterhub.proxy import ConfigurableHTTPProxy
+
+      class PrefixAwareProxy(ConfigurableHTTPProxy):
+          """Compensate for --no-include-prefix on a per-route basis.
+
+          CHP's --no-include-prefix strips the route prefix globally.
+          For servers that expect the prefix (e.g. Jupyter), we re-add it
+          to the target URL so CHP forwards the full path. Servers that
+          serve from / (e.g. KasmVNC) get a plain target.
+          """
+          no_prefix_images = {"kasmvnc", "kasmweb"}
+
+          def _serves_from_root(self, username, server_name):
+              """Check if a server's image serves from / (needs prefix stripped)."""
+              user = self.app.users.get(username)
+              if not user:
+                  return False
+              spawner = user.spawners.get(server_name)
+              if not spawner:
+                  return False
+              image = getattr(spawner, "image", "") or ""
+              return any(tag in image.lower() for tag in self.no_prefix_images)
+
+          async def add_route(self, routespec, target, data):
+              if data and "user" in data:
+                  username = data["user"]
+                  server_name = data.get("server_name", "")
+                  if not self._serves_from_root(username, server_name):
+                      target = target.rstrip("/") + routespec
+              await super().add_route(routespec, target, data)
+
+      c.JupyterHub.proxy_class = PrefixAwareProxy
   services:
     tostada:
       api_token: "changeme-tostada-api-token"
