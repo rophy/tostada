@@ -33,14 +33,3 @@ workspaces:
     image: kasmweb/ubuntu-noble-desktop:1.16.1
     port: 6901
     cmd: ["/dockerstartup/kasm_default_profile.sh"]
-
-  - name: xrdp-ubuntu
-    displayName: Ubuntu Desktop (xRDP)
-    description: Full Ubuntu desktop via RDP
-    icon: desktop
-    type: guacamole
-    image: scottyhardy/docker-remote-desktop:latest
-    port: 3389
-    rdpCredentials:
-      username: ubuntu
-      password: ubuntu

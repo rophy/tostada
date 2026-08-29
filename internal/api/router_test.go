@@ -33,15 +33,6 @@ func testConfig() *config.Config {
 				Port:        8888,
 			},
 			{
-				Name:        "xrdp-ubuntu",
-				DisplayName: "Ubuntu Desktop",
-				Description: "RDP desktop",
-				Icon:        "desktop",
-				Type:        "guacamole",
-				Image:       "scottyhardy/docker-remote-desktop:latest",
-				Port:        3389,
-			},
-			{
 				Name:        "kasmvnc",
 				DisplayName: "Ubuntu Desktop (KasmVNC)",
 				Description: "KasmVNC desktop",
@@ -70,8 +61,8 @@ func TestListWorkspaces(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&workspaces); err != nil {
 		t.Fatalf("Decode error: %v", err)
 	}
-	if len(workspaces) != 3 {
-		t.Errorf("len(workspaces) = %d, want 3", len(workspaces))
+	if len(workspaces) != 2 {
+		t.Errorf("len(workspaces) = %d, want 2", len(workspaces))
 	}
 	if workspaces[0].Name != "jupyter" {
 		t.Errorf("workspaces[0].Name = %q", workspaces[0].Name)

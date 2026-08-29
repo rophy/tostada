@@ -70,20 +70,6 @@ singleuser:
         environment:
           VNC_PW: "password"
           VNCOPTIONS: "-DisableBasicAuth -sslOnly 0"
-    - display_name: "Ubuntu Desktop (xRDP)"
-      kubespawner_override:
-        image: scottyhardy/docker-remote-desktop:latest
-        cmd: null
-        port: 3389
-        extra_annotations:
-          tostada.dev/type: guacamole
-        volume_mounts:
-          - name: dshm
-            mountPath: /dev/shm
-        volumes:
-          - name: dshm
-            emptyDir:
-              medium: Memory
   storage:
     capacity: 256Mi
 
