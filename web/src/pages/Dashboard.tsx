@@ -1,4 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Layout, Typography, Button, Card, Table, Space, Row, Col, Spin } from 'antd'
+import {
+  LoginOutlined, LogoutOutlined, LinkOutlined,
+  DesktopOutlined,
+} from '@ant-design/icons'
 import {
   Workspace, Server, Device,
   fetchWorkspaces, fetchSessions, fetchCurrentUser, fetchDevices,
@@ -6,6 +11,9 @@ import {
 } from '../api'
 import { WorkspaceCard } from '../components/WorkspaceCard'
 import { SessionList } from '../components/SessionList'
+
+const { Header, Content } = Layout
+const { Title } = Typography
 
 export function Dashboard() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -29,7 +37,6 @@ export function Dashboard() {
     })
   }, [])
 
-  // Poll while any session is pending
   useEffect(() => {
     const hasPending = Object.values(sessions).some(s => s.pending || !s.ready)
     if (!hasPending || Object.keys(sessions).length === 0) return
@@ -53,80 +60,99 @@ export function Dashboard() {
     refresh()
   }
 
-  if (!authChecked) return null
-
-  if (!username) {
+  if (!authChecked) {
     return (
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px', textAlign: 'center', marginTop: '100px' }}>
-        <h1>Tostada</h1>
-        <p style={{ margin: '24px 0' }}>Sign in to access your workspaces and devices.</p>
-        <a href="/api/auth/login" style={{
-          display: 'inline-block', padding: '12px 24px',
-          background: '#0066cc', color: '#fff', borderRadius: '6px',
-          textDecoration: 'none', fontSize: '16px',
-        }}>Login with OIDC</a>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Spin size="large" />
       </div>
     )
   }
 
+  if (!username) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Card style={{ textAlign: 'center', maxWidth: 400 }}>
+          <Title level={2}>Tostada</Title>
+          <p style={{ margin: '24px 0', color: '#666' }}>
+            Sign in to access your workspaces and devices.
+          </p>
+          <Button type="primary" size="large" icon={<LoginOutlined />} href="/api/auth/login">
+            Login with OIDC
+          </Button>
+        </Card>
+      </div>
+    )
+  }
+
+  const deviceColumns = [
+    { title: 'Name', dataIndex: 'displayName', key: 'displayName' },
+    { title: 'Host', key: 'host', render: (_: unknown, d: Device) => `${d.host}:${d.port}` },
+    { title: 'User', dataIndex: 'username', key: 'username' },
+    { title: 'Protocol', key: 'protocol', render: (_: unknown, d: Device) => d.protocol.toUpperCase() },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right' as const,
+      render: (_: unknown, d: Device) => (
+        <Button
+          type="link"
+          icon={<LinkOutlined />}
+          onClick={async () => {
+            const info = await getDeviceConnectInfo(d.name)
+            const params = new URLSearchParams({ token: info.token, id: info.connectionId })
+            window.open(`/connect.html?${params}`, '_blank')
+          }}
+        >
+          Connect
+        </Button>
+      ),
+    },
+  ]
+
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Tostada</h1>
-        <div>
-          <span>
-            {username}{' '}
-            <button onClick={logout} style={{ marginLeft: '8px' }}>Logout</button>
-          </span>
-        </div>
-      </div>
-
-      <h2>Workspaces</h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: '16px',
+    <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <Header style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        background: '#fff', padding: '0 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
       }}>
-        {workspaces.map(ws => (
-          <WorkspaceCard key={ws.name} workspace={ws} onLaunch={handleLaunch} />
-        ))}
-      </div>
+        <Title level={3} style={{ margin: 0 }}>Tostada</Title>
+        <Space>
+          <span>{username}</span>
+          <Button type="text" icon={<LogoutOutlined />} onClick={logout}>Logout</Button>
+        </Space>
+      </Header>
+      <Content style={{ maxWidth: 1080, width: '100%', margin: '24px auto', padding: '0 24px' }}>
+        <Title level={4}>Workspaces</Title>
+        <Row gutter={[16, 16]}>
+          {workspaces.map(ws => (
+            <Col key={ws.name} xs={24} sm={12} md={8}>
+              <WorkspaceCard workspace={ws} onLaunch={handleLaunch} />
+            </Col>
+          ))}
+        </Row>
 
-      <SessionList sessions={sessions} onConnect={handleConnect} onStop={handleStop} />
+        {Object.keys(sessions).length > 0 && (
+          <>
+            <Title level={4} style={{ marginTop: 32 }}>Active Sessions</Title>
+            <SessionList sessions={sessions} onConnect={handleConnect} onStop={handleStop} />
+          </>
+        )}
 
-      {devices.length > 0 && (
-        <>
-          <h2>Devices</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Name</th>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Host</th>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>User</th>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Protocol</th>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map(d => (
-                <tr key={d.name}>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.displayName}</td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.host}:{d.port}</td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.username}</td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{d.protocol.toUpperCase()}</td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
-                    <button onClick={async () => {
-                      const info = await getDeviceConnectInfo(d.name)
-                      const params = new URLSearchParams({ token: info.token, id: info.connectionId })
-                      window.open(`/connect.html?${params}`, '_blank')
-                    }}>Connect</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-    </div>
+        {devices.length > 0 && (
+          <>
+            <Title level={4} style={{ marginTop: 32 }}>
+              <DesktopOutlined style={{ marginRight: 8 }} />
+              Devices
+            </Title>
+            <Table
+              dataSource={devices.map(d => ({ ...d, key: d.name }))}
+              columns={deviceColumns}
+              pagination={false}
+              size="middle"
+            />
+          </>
+        )}
+      </Content>
+    </Layout>
   )
 }

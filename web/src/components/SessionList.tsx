@@ -1,3 +1,5 @@
+import { Table, Button, Tag, Space } from 'antd'
+import { LinkOutlined, StopOutlined } from '@ant-design/icons'
 import { Server } from '../api'
 
 interface Props {
@@ -10,44 +12,62 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
   const entries = Object.entries(sessions)
   if (entries.length === 0) return null
 
+  const dataSource = entries.map(([sessionName, server]) => ({
+    ...server,
+    key: sessionName,
+    name: sessionName,
+  }))
+
   return (
-    <div>
-      <h2>Active Sessions</h2>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ddd' }}>Name</th>
-            <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ddd' }}>Status</th>
-            <th style={{ textAlign: 'right', padding: '8px', borderBottom: '1px solid #ddd' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map(([name, server]) => (
-            <tr key={name}>
-              <td style={{ padding: '8px' }}>{name}</td>
-              <td style={{ padding: '8px' }}>
-                {server.ready ? '✅ Ready' : server.pending ? '⏳ Starting...' : '⚠️ Unknown'}
-              </td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>
-                {server.ready && (
-                  <button
-                    onClick={() => onConnect(name)}
-                    style={{ marginRight: '8px', padding: '4px 12px', cursor: 'pointer' }}
-                  >
-                    Connect
-                  </button>
-                )}
-                <button
-                  onClick={() => onStop(name)}
-                  style={{ padding: '4px 12px', cursor: 'pointer', color: '#dc2626' }}
+    <Table
+      dataSource={dataSource}
+      pagination={false}
+      size="middle"
+      columns={[
+        {
+          title: 'Name',
+          dataIndex: 'name',
+          key: 'name',
+        },
+        {
+          title: 'Status',
+          key: 'status',
+          render: (_, record) =>
+            record.ready ? (
+              <Tag color="success">Ready</Tag>
+            ) : record.pending ? (
+              <Tag color="processing">Starting...</Tag>
+            ) : (
+              <Tag color="warning">Unknown</Tag>
+            ),
+        },
+        {
+          title: 'Actions',
+          key: 'actions',
+          align: 'right' as const,
+          render: (_, record) => (
+            <Space>
+              {record.ready && (
+                <Button
+                  type="link"
+                  icon={<LinkOutlined />}
+                  onClick={() => onConnect(record.name)}
                 >
-                  Stop
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  Connect
+                </Button>
+              )}
+              <Button
+                type="link"
+                danger
+                icon={<StopOutlined />}
+                onClick={() => onStop(record.name)}
+              >
+                Stop
+              </Button>
+            </Space>
+          ),
+        },
+      ]}
+    />
   )
 }
