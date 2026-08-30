@@ -32,7 +32,8 @@ spec:
           configMap:
             name: tostada-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: tostada-data
 ---
 apiVersion: v1
 kind: Service
