@@ -49,6 +49,7 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 					"port":        fmt.Sprintf("%d", d.Port),
 					"username":    d.Username,
 					"password":    d.Password,
+					"security":    "nla",
 					"ignore-cert": "true",
 				},
 			},
