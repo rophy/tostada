@@ -1,3 +1,9 @@
+## Development Policy
+
+1. Always run `make test` before committing. All tests must pass.
+2. Test coverage must be above 80% for both Go and TypeScript before pushing. If coverage drops below 80%, add tests before pushing.
+3. All errors must be fixed before pushing. There is no such thing as "pre-existing errors" — if you see a failing test or lint error, fix it regardless of when it was introduced.
+
 ## Git Hooks
 
 This project uses gitleaks for pre-commit secret scanning.
