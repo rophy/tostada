@@ -231,6 +231,7 @@ function startConnection(token, connId) {
   displayEl.appendChild(guacDisplay.getElement());
 
   var stateNames = {0:"Idle",1:"Connecting",2:"Waiting",3:"Connected",4:"Disconnecting",5:"Disconnected"};
+  var hideTimer = null;
 
   guac.onstatechange = function(state) {
     var name = stateNames[state] || ("Unknown state: " + state);
@@ -243,15 +244,18 @@ function startConnection(token, connId) {
     } else if (state === 3) {
       log("Connected successfully", "success");
       setTitle("Connected");
-      setTimeout(function() {
+      hideTimer = setTimeout(function() {
+        hideTimer = null;
         hideProgress();
         showSidebar();
       }, 800);
     } else if (state === 4) {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
       log("Disconnecting...");
       setTitle("Disconnecting...");
       showProgress();
     } else if (state === 5) {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
       log("Disconnected", "info");
       setTitle("Disconnected");
       showProgress();
@@ -263,6 +267,7 @@ function startConnection(token, connId) {
   };
 
   guac.onerror = function(err) {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     var msg = err.message || JSON.stringify(err);
     log("Error: " + msg, "error");
     if (err.statusCode) {
