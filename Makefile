@@ -28,4 +28,6 @@ build:
 	go build ./cmd/tostada/
 
 test:
-	go test ./... -v
+	go test ./... -v -coverprofile=coverage.out
+	@go tool cover -func=coverage.out | tail -1
+	cd web && npx vitest run --coverage
