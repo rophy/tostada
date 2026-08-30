@@ -102,3 +102,22 @@ func TestNewGormStore_CreatesDB(t *testing.T) {
 		t.Error("database file should exist")
 	}
 }
+
+func TestWithSilentLogger(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "silent.db")
+	store, err := NewGormStore(dbPath, WithSilentLogger())
+	if err != nil {
+		t.Fatalf("NewGormStore with WithSilentLogger: %v", err)
+	}
+	if store == nil {
+		t.Error("store should not be nil")
+	}
+}
+
+func TestGormStore_DB(t *testing.T) {
+	store := testStore(t)
+	db := store.DB()
+	if db == nil {
+		t.Error("DB() should return non-nil")
+	}
+}

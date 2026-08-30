@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -161,6 +163,45 @@ func TestDevicesConnect_Unauthorized(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/devices/test-rdp/connect", nil)
 	req.SetPathValue("name", "test-rdp")
 	req = req.WithContext(auth.WithUser(req.Context(), "bob"))
+	rec := httptest.NewRecorder()
+
+	h.connect(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("Status = %d, want 404", rec.Code)
+	}
+}
+
+type errorStore struct{}
+
+func (e *errorStore) ListDevices(_ context.Context, _ string) ([]device.Device, error) {
+	return nil, fmt.Errorf("db error")
+}
+
+func (e *errorStore) GetDevice(_ context.Context, _ string, _ string) (*device.Device, error) {
+	return nil, fmt.Errorf("not found")
+}
+
+func TestDevicesList_StoreError(t *testing.T) {
+	h := &devicesHandler{store: &errorStore{}}
+
+	req := httptest.NewRequest("GET", "/api/devices", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+
+	h.list(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("Status = %d, want 500", rec.Code)
+	}
+}
+
+func TestDevicesConnect_GetDeviceError(t *testing.T) {
+	h := &devicesHandler{store: &errorStore{}}
+
+	req := httptest.NewRequest("GET", "/api/devices/bad/connect", nil)
+	req.SetPathValue("name", "bad")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
 	rec := httptest.NewRecorder()
 
 	h.connect(rec, req)

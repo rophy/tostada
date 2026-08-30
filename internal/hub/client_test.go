@@ -91,3 +91,128 @@ func TestStopServer(t *testing.T) {
 		t.Fatalf("StopServer() error: %v", err)
 	}
 }
+
+func TestEnsureUser_Created(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("Method = %q, want POST", r.Method)
+		}
+		if r.URL.Path != "/users/alice" {
+			t.Errorf("Path = %q, want /users/alice", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	err := client.EnsureUser("alice")
+	if err != nil {
+		t.Fatalf("EnsureUser() error: %v", err)
+	}
+}
+
+func TestEnsureUser_AlreadyExists(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	err := client.EnsureUser("alice")
+	if err != nil {
+		t.Fatalf("EnsureUser() should not error on 409, got: %v", err)
+	}
+}
+
+func TestEnsureUser_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	err := client.EnsureUser("alice")
+	if err == nil {
+		t.Fatal("EnsureUser() should error on 500")
+	}
+}
+
+func TestCreateUserToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("Method = %q, want POST", r.Method)
+		}
+		if r.URL.Path != "/users/alice/tokens" {
+			t.Errorf("Path = %q, want /users/alice/tokens", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"token": "abc123"})
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	token, err := client.CreateUserToken("alice")
+	if err != nil {
+		t.Fatalf("CreateUserToken() error: %v", err)
+	}
+	if token != "abc123" {
+		t.Errorf("token = %q, want %q", token, "abc123")
+	}
+}
+
+func TestCreateUserToken_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	_, err := client.CreateUserToken("alice")
+	if err == nil {
+		t.Fatal("CreateUserToken() should error on 500")
+	}
+}
+
+func TestGetUser_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("not found"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	_, err := client.GetUser("alice")
+	if err == nil {
+		t.Fatal("GetUser() should error on 404")
+	}
+}
+
+func TestStopServer_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	err := client.StopServer("alice", "my-desktop")
+	if err == nil {
+		t.Fatal("StopServer() should error on 500")
+	}
+}
+
+func TestSpawnServer_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	err := client.SpawnServer("alice", "my-desktop", "ubuntu-desktop-kasmvnc")
+	if err == nil {
+		t.Fatal("SpawnServer() should error on 500")
+	}
+}

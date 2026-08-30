@@ -8,6 +8,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -82,5 +84,53 @@ func TestBuildToken_InvalidKey(t *testing.T) {
 	_, err := BuildToken(payload, "not-hex")
 	if err == nil {
 		t.Error("BuildToken() should error on invalid hex key")
+	}
+}
+
+func TestExchangeToken_Success(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/tokens" {
+			t.Errorf("Path = %q, want /api/tokens", r.URL.Path)
+		}
+		if r.Method != http.MethodPost {
+			t.Errorf("Method = %q, want POST", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"authToken": "test-auth-token"})
+	}))
+	defer srv.Close()
+
+	token, err := ExchangeToken(srv.URL, "encrypted-data")
+	if err != nil {
+		t.Fatalf("ExchangeToken() error: %v", err)
+	}
+	if token != "test-auth-token" {
+		t.Errorf("token = %q, want %q", token, "test-auth-token")
+	}
+}
+
+func TestExchangeToken_ServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
+	_, err := ExchangeToken(srv.URL, "encrypted-data")
+	if err == nil {
+		t.Error("ExchangeToken() should error on 500")
+	}
+}
+
+func TestExchangeToken_InvalidJSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("not-json"))
+	}))
+	defer srv.Close()
+
+	_, err := ExchangeToken(srv.URL, "encrypted-data")
+	if err == nil {
+		t.Error("ExchangeToken() should error on invalid JSON")
 	}
 }

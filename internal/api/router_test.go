@@ -45,6 +45,31 @@ func testConfig() *config.Config {
 	}
 }
 
+func TestNewRouter(t *testing.T) {
+	cfg := testConfig()
+	hubClient := hub.NewClient("http://hub:8081", "test-token")
+	authProvider := &auth.Auth{}
+	store := testDeviceStore(t)
+
+	mux := NewRouter(cfg, hubClient, authProvider, store)
+	if mux == nil {
+		t.Fatal("NewRouter returned nil")
+	}
+}
+
+func TestNewRouter_WithOIDCProxy(t *testing.T) {
+	cfg := testConfig()
+	cfg.OIDC.InternalURL = "http://oidc-mock:8080"
+	hubClient := hub.NewClient("http://hub:8081", "test-token")
+	authProvider := &auth.Auth{}
+	store := testDeviceStore(t)
+
+	mux := NewRouter(cfg, hubClient, authProvider, store)
+	if mux == nil {
+		t.Fatal("NewRouter returned nil")
+	}
+}
+
 func TestListWorkspaces(t *testing.T) {
 	cfg := testConfig()
 	h := &workspacesHandler{workspaces: cfg.Workspaces}
@@ -263,6 +288,408 @@ func TestConnectServerNotFound(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("Status = %d, want 404", rec.Code)
+	}
+}
+
+func TestSessionsList(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(hub.User{
+			Name: "alice",
+			Servers: map[string]hub.Server{
+				"nb-1": {Name: "nb-1", Ready: true, URL: "/user/alice/nb-1/"},
+				"nb-2": {Name: "nb-2", Ready: false, URL: ""},
+			},
+		})
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.list(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200", rec.Code)
+	}
+	var servers map[string]hub.Server
+	if err := json.NewDecoder(rec.Body).Decode(&servers); err != nil {
+		t.Fatalf("Decode error: %v", err)
+	}
+	if len(servers) != 2 {
+		t.Errorf("len(servers) = %d, want 2", len(servers))
+	}
+}
+
+func TestSessionsList_HubError(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	h := &sessionsHandler{
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.list(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200 (empty fallback)", rec.Code)
+	}
+	var result map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
+		t.Fatalf("Decode error: %v", err)
+	}
+	if len(result) != 0 {
+		t.Errorf("expected empty object, got %v", result)
+	}
+}
+
+func TestSessionsCreate(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/users/alice":
+			w.WriteHeader(http.StatusCreated)
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/users/alice/servers/"):
+			w.WriteHeader(http.StatusCreated)
+		default:
+			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+	}
+
+	body := `{"workspace":"jupyter","serverName":"nb-123"}`
+	req := httptest.NewRequest("POST", "/api/sessions", strings.NewReader(body))
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.create(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("Status = %d, want 201; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSessionsCreate_InvalidBody(t *testing.T) {
+	h := &sessionsHandler{
+		workspaces: testConfig().Workspaces,
+	}
+
+	req := httptest.NewRequest("POST", "/api/sessions", strings.NewReader("not json"))
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.create(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Status = %d, want 400", rec.Code)
+	}
+}
+
+func TestSessionsCreate_UnknownWorkspace(t *testing.T) {
+	h := &sessionsHandler{
+		workspaces: testConfig().Workspaces,
+	}
+
+	body := `{"workspace":"nonexistent","serverName":"nb-123"}`
+	req := httptest.NewRequest("POST", "/api/sessions", strings.NewReader(body))
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.create(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Status = %d, want 400", rec.Code)
+	}
+}
+
+func TestSessionsStop(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("Method = %q, want DELETE", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer hubSrv.Close()
+
+	h := &sessionsHandler{
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+	}
+
+	req := httptest.NewRequest("DELETE", "/api/sessions/my-nb", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.stop(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("Status = %d, want 204", rec.Code)
+	}
+}
+
+func TestSessionsStop_HubError(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	h := &sessionsHandler{
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+	}
+
+	req := httptest.NewRequest("DELETE", "/api/sessions/my-nb", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.stop(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
+func TestConnectServerNotReady(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(hub.User{
+			Name: "alice",
+			Servers: map[string]hub.Server{
+				"my-nb": {Name: "my-nb", Ready: false, URL: ""},
+			},
+		})
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+		guacCfg:    cfg.Guacamole,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/my-nb/connect", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.connect(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("Status = %d, want 409; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSessionsCreate_EnsureUserFails(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+	}
+
+	body := `{"workspace":"jupyter","serverName":"nb-123"}`
+	req := httptest.NewRequest("POST", "/api/sessions", strings.NewReader(body))
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.create(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
+func TestSessionsCreate_SpawnFails(t *testing.T) {
+	callCount := 0
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			w.WriteHeader(http.StatusCreated)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+	}
+
+	body := `{"workspace":"jupyter","serverName":"nb-123"}`
+	req := httptest.NewRequest("POST", "/api/sessions", strings.NewReader(body))
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.create(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
+func TestConnectHubError(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	h := &sessionsHandler{
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/nb/connect", nil)
+	req.SetPathValue("name", "nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.connect(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
+func TestConnectGuacamoleType(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(hub.User{
+			Name: "alice",
+			Servers: map[string]hub.Server{
+				"my-rdp": {
+					Name:        "my-rdp",
+					Ready:       true,
+					URL:         "/user/alice/my-rdp/",
+					UserOptions: map[string]string{"profile": "rdp-desktop"},
+				},
+			},
+		})
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	cfg.Workspaces = append(cfg.Workspaces, config.Workspace{
+		Name:        "rdp",
+		DisplayName: "RDP Desktop",
+		Type:        "guacamole",
+		Image:       "xrdp:latest",
+		Port:        3389,
+		RDPCredentials: config.RDPCredentials{
+			Username: "user",
+			Password: "pass",
+		},
+	})
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+		guacCfg:    cfg.Guacamole,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/my-rdp/connect", nil)
+	req.SetPathValue("name", "my-rdp")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.connect(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]string
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp["url"] == "" {
+		t.Error("url is empty")
+	}
+	if !strings.Contains(resp["url"], "token=") {
+		t.Errorf("url missing token param: %s", resp["url"])
+	}
+}
+
+func TestConnectTokenCreateFails(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/users/alice":
+			json.NewEncoder(w).Encode(hub.User{
+				Name: "alice",
+				Servers: map[string]hub.Server{
+					"nb": {
+						Name:        "nb",
+						Ready:       true,
+						URL:         "/user/alice/nb/",
+						UserOptions: map[string]string{"profile": "jupyter-notebook"},
+					},
+				},
+			})
+		case "/users/alice/tokens":
+			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer hubSrv.Close()
+
+	cfg := testConfig()
+	h := &sessionsHandler{
+		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
+		workspaces: cfg.Workspaces,
+		guacCfg:    cfg.Guacamole,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/nb/connect", nil)
+	req.SetPathValue("name", "nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.connect(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200 (falls back to URL without token)", rec.Code)
+	}
+	var resp map[string]string
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp["url"] != "/user/alice/nb/" {
+		t.Errorf("url = %q, want fallback URL", resp["url"])
+	}
+}
+
+func TestRegisterGuacamoleProxy(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Proxied", "true")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("proxied:" + r.URL.Path))
+	}))
+	defer backend.Close()
+
+	mux := http.NewServeMux()
+	registerGuacamoleProxy(mux, config.GuacamoleConfig{URL: backend.URL})
+
+	req := httptest.NewRequest("GET", "/api/guacamole/tunnel?read=abc", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("tunnel proxy: Status = %d, want 200", rec.Code)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "proxied:/tunnel") {
+		t.Errorf("tunnel proxy: body = %q, want 'proxied:/tunnel'", body)
+	}
+
+	req = httptest.NewRequest("GET", "/guacamole-common-js/all.min.js", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("static proxy: Status = %d, want 200", rec.Code)
 	}
 }
 
