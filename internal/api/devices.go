@@ -36,9 +36,8 @@ func deviceParams(d *device.Device) map[string]string {
 		"password": d.Password,
 	}
 	if d.Protocol == "rdp" {
-		params["security"] = "nla"
+		params["security"] = "any"
 		params["ignore-cert"] = "true"
-		params["enable-gfx"] = "true"
 	}
 	return params
 }

@@ -19,5 +19,4 @@ RUN apk add --no-cache ca-certificates
 ENV TOSTADA_DB=/data/tostada.db
 COPY --from=backend /tostada /tostada
 COPY --from=backend /tostada-cli /tostada-cli
-COPY config.yaml /etc/tostada/config.yaml
 ENTRYPOINT ["/tostada", "-config", "/etc/tostada/config.yaml"]
