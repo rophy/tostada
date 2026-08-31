@@ -8,21 +8,14 @@ build:
       docker:
         dockerfile: Dockerfile
 manifests:
-  rawYaml:
-    - k8s/oidc-mock.yaml
-    - k8s/guacamole.yaml
-    - k8s/kasmvnc-config.yaml
-    - k8s/tostada.yaml
   helm:
     releases:
-      - name: jupyterhub
-        remoteChart: jupyterhub
-        repo: https://hub.jupyter.org/helm-chart/
-        version: 4.1.0
+      - name: tostada
+        chartPath: charts/tostada
         namespace: tostada
         createNamespace: true
         valuesFiles:
-          - k8s/jupyterhub-values.yaml
+          - charts/tostada/values-local.yaml
 deploy:
   kubectl:
     defaultNamespace: tostada

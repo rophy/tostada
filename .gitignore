@@ -1,5 +1,9 @@
 *.db
+*.png
 .env
+.playwright-mcp/
+coverage.out
+web/coverage/
 charts/tostada/charts/
 charts/tostada/Chart.lock
 charts/tostada/values-local.yaml

@@ -8,6 +8,9 @@ data:
       addr: ":8080"
     oidc:
       issuerURL: "https://{{ .Values.domain }}"
+      {{- if .Values.oidc.internalURL }}
+      internalURL: {{ .Values.oidc.internalURL | quote }}
+      {{- end }}
       clientID: {{ .Values.oidc.clientID | quote }}
       clientSecret: {{ .Values.oidc.clientSecret | quote }}
       redirectURL: "https://{{ .Values.domain }}/api/auth/callback"
