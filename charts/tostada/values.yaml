@@ -13,7 +13,7 @@ guacamole:
   url: "http://guacamole:8080"
   jsonSecretKey: "change-me-hex-key"
   guacd:
-    image: ghcr.io/rophy/guacd:1.6.0-20260831-1
+    image: ghcr.io/rophy/guacd:1.6.0-20260831-2
   web:
     image: guacamole/guacamole:1.6.0
 

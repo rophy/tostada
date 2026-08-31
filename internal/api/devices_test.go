@@ -172,6 +172,58 @@ func TestDevicesConnect_Unauthorized(t *testing.T) {
 	}
 }
 
+func TestDeviceParams_RDP(t *testing.T) {
+	d := &device.Device{
+		Protocol: "rdp",
+		Host:     "10.0.0.1",
+		Port:     3389,
+		Username: "user",
+		Password: "pass",
+	}
+	params := deviceParams(d)
+
+	expected := map[string]string{
+		"hostname":    "10.0.0.1",
+		"port":        "3389",
+		"username":    "user",
+		"password":    "pass",
+		"security":    "any",
+		"ignore-cert": "true",
+	}
+	for k, want := range expected {
+		if got := params[k]; got != want {
+			t.Errorf("params[%q] = %q, want %q", k, got, want)
+		}
+	}
+	if len(params) != len(expected) {
+		t.Errorf("len(params) = %d, want %d", len(params), len(expected))
+	}
+}
+
+func TestDeviceParams_VNC(t *testing.T) {
+	d := &device.Device{
+		Protocol: "vnc",
+		Host:     "10.0.0.2",
+		Port:     5900,
+		Username: "user",
+		Password: "pass",
+	}
+	params := deviceParams(d)
+
+	if _, ok := params["security"]; ok {
+		t.Error("VNC should not have security param")
+	}
+	if _, ok := params["ignore-cert"]; ok {
+		t.Error("VNC should not have ignore-cert param")
+	}
+	if params["hostname"] != "10.0.0.2" {
+		t.Errorf("hostname = %q, want %q", params["hostname"], "10.0.0.2")
+	}
+	if params["port"] != "5900" {
+		t.Errorf("port = %q, want %q", params["port"], "5900")
+	}
+}
+
 type errorStore struct{}
 
 func (e *errorStore) ListDevices(_ context.Context, _ string) ([]device.Device, error) {

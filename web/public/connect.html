@@ -279,10 +279,19 @@ function startConnection(token, connId) {
         515: "Upstream error",
         516: "Resource not found",
         517: "Resource conflict",
-        768: "Session closed",
-        769: "Session timeout",
-        771: "Client too many connections",
+        518: "Resource closed",
+        519: "Upstream not found",
+        520: "Upstream unavailable",
+        521: "Session conflict",
+        522: "Session timeout",
+        523: "Session closed",
+        768: "Bad request",
+        769: "Unauthorized",
+        771: "Access denied (insufficient privileges)",
         776: "Client timeout",
+        781: "Client overrun",
+        783: "Bad type",
+        797: "Too many connections",
       };
       if (codes[err.statusCode]) {
         log("Reason: " + codes[err.statusCode], "error");
