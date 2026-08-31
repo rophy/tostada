@@ -28,6 +28,21 @@ func (h *devicesHandler) list(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(devices)
 }
 
+func deviceParams(d *device.Device) map[string]string {
+	params := map[string]string{
+		"hostname": d.Host,
+		"port":     fmt.Sprintf("%d", d.Port),
+		"username": d.Username,
+		"password": d.Password,
+	}
+	if d.Protocol == "rdp" {
+		params["security"] = "nla"
+		params["ignore-cert"] = "true"
+		params["enable-gfx"] = "true"
+	}
+	return params
+}
+
 func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 	username := auth.UserFromContext(r.Context())
 	name := r.PathValue("name")
@@ -44,14 +59,7 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 		Connections: map[string]guacamole.JSONAuthConnection{
 			d.Name: {
 				Protocol: d.Protocol,
-				Parameters: map[string]string{
-					"hostname":    d.Host,
-					"port":        fmt.Sprintf("%d", d.Port),
-					"username":    d.Username,
-					"password":    d.Password,
-					"security":    "nla",
-					"ignore-cert": "true",
-				},
+				Parameters: deviceParams(d),
 			},
 		},
 	}
