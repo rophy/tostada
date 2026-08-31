@@ -328,17 +328,20 @@ function startConnection(token, connId) {
   keyboard.onkeydown = function(keysym) { guac.sendKeyEvent(1, keysym); };
   keyboard.onkeyup = function(keysym) { guac.sendKeyEvent(0, keysym); };
 
-  var displayElement = guacDisplay.getElement();
-
-  var mouse = new Guacamole.Mouse(displayElement);
-  mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function(mouseState) {
+  // Attach mouse/touch to the non-transformed container, not the CSS-scaled
+  // display element — see https://github.com/rophy/tostada/issues/2
+  function toDesktopCoords(mouseState) {
+    var scale = guacDisplay.getScale();
+    mouseState.x /= scale;
+    mouseState.y /= scale;
     guac.sendMouseState(mouseState);
-  };
+  }
 
-  var touch = new Guacamole.Mouse.Touchscreen(displayElement);
-  touch.onmousedown = touch.onmouseup = touch.onmousemove = function(mouseState) {
-    guac.sendMouseState(mouseState);
-  };
+  var mouse = new Guacamole.Mouse(displayEl);
+  mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = toDesktopCoords;
+
+  var touch = new Guacamole.Mouse.Touchscreen(displayEl);
+  touch.onmousedown = touch.onmouseup = touch.onmousemove = toDesktopCoords;
 
   log("Authenticating...");
   var connectParams = "token=" + encodeURIComponent(token)
