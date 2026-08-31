@@ -58,8 +58,60 @@ Tostada uses **JupyterHub** as its orchestration layer — handling authenticati
 
 ## Deployment
 
-Runs on Kubernetes (kind cluster for dev). Deployed via Helm charts.
+Local development runs on a kind cluster with docker-compose providing the reverse proxy and OIDC mock.
 
-## Status
+### Prerequisites
 
-Early stage — gathering architecture insights from related projects, scaffolding underway.
+- [kind](https://kind.sigs.k8s.io/)
+- [skaffold](https://skaffold.dev/)
+- [Helm](https://helm.sh/)
+- [Docker Compose](https://docs.docker.com/compose/)
+- Go, Node.js (use [mise](https://mise.jdx.dev/) — see `mise.toml`)
+
+### Setup
+
+1. Copy `.env.example` to `.env` and adjust values:
+
+```sh
+cp .env.example .env
+```
+
+2. Build Helm chart dependencies:
+
+```sh
+helm dependency build charts/tostada
+```
+
+3. Deploy everything:
+
+```sh
+make up
+```
+
+This creates the kind cluster, starts docker-compose (nginx proxy + OIDC mock), generates Helm values from `.env`, and deploys via skaffold.
+
+### What `make up` does
+
+```
+.env  ──envsubst──▶  values-local.yaml  ──▶  Helm chart (tostada + jupyterhub subchart)
+                                                │
+docker-compose (nginx + oidc-mock)              │
+       │                                        ▼
+       └──────▶  kind cluster  ◀────────  skaffold run
+```
+
+- **docker-compose nginx** — single entry point, proxies OIDC endpoints to oidc-mock and everything else to the kind cluster gateway
+- **skaffold** — builds the tostada image and deploys the Helm chart
+- **values-local.yaml** — auto-generated from `.env`, gitignored
+
+### Available targets
+
+```
+make help
+```
+
+### Teardown
+
+```sh
+make down
+```

@@ -1,3 +1,10 @@
+## Deployment
+
+- `make up` deploys everything (kind cluster, docker-compose, Helm chart)
+- Local configuration lives in `.env` (gitignored) — see `.env.example`
+- `.env` is the single source of truth; `charts/tostada/values-local.yaml` is auto-generated from it
+- See `README.md` for full deployment flow and prerequisites
+
 ## Development Policy
 
 1. Always run `make test` before committing. All tests must pass.
