@@ -6,11 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/rophy/tostada/internal/model"
+	"github.com/rophy/tostada/internal/telemetry"
 	"golang.org/x/oauth2"
 )
 
@@ -26,6 +29,8 @@ type Auth struct {
 	verifier     *oidc.IDTokenVerifier
 	sessions     map[string]session
 	mu           sync.RWMutex
+	userStore    model.UserStore
+	auditLog     *telemetry.AuditLog
 }
 
 type session struct {
@@ -33,7 +38,7 @@ type session struct {
 	expiry   time.Time
 }
 
-func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string) (*Auth, error) {
+func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string, userStore model.UserStore, auditLog *telemetry.AuditLog) (*Auth, error) {
 	discoveryURL := issuerURL
 	if internalURL != "" {
 		discoveryURL = internalURL
@@ -54,8 +59,10 @@ func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret
 			Endpoint:     endpoint,
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		},
-		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
-		sessions: make(map[string]session),
+		verifier:  provider.Verifier(&oidc.Config{ClientID: clientID}),
+		sessions:  make(map[string]session),
+		userStore: userStore,
+		auditLog:  auditLog,
 	}, nil
 }
 
@@ -113,6 +120,10 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 			username = claims.Email
 		}
 
+		if a.userStore != nil {
+			a.userStore.EnsureUser(r.Context(), username)
+		}
+
 		sessionID := generateState()
 		a.mu.Lock()
 		a.sessions[sessionID] = session{
@@ -129,6 +140,12 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
+
+		if a.auditLog != nil {
+			ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+			a.auditLog.Log("auth.login", username, "", map[string]string{"ip": ip})
+		}
+
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
@@ -165,6 +182,14 @@ func (a *Auth) LogoutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookie)
 		if err == nil {
+			if a.auditLog != nil {
+				a.mu.RLock()
+				sess, ok := a.sessions[cookie.Value]
+				a.mu.RUnlock()
+				if ok {
+					a.auditLog.Log("auth.logout", sess.username, "", nil)
+				}
+			}
 			a.mu.Lock()
 			delete(a.sessions, cookie.Value)
 			a.mu.Unlock()

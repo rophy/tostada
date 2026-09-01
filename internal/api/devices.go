@@ -77,6 +77,12 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.auditLog != nil {
+		h.auditLog.Log("device.connect", username, "", map[string]string{
+			"device": d.Name,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"token":        authToken,

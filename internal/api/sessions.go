@@ -87,6 +87,13 @@ func (h *sessionsHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.auditLog != nil {
+		h.auditLog.Log("session.spawn", username, "", map[string]string{
+			"workspace": req.Workspace,
+			"server":    req.ServerName,
+		})
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"status": "spawning"})
 }
@@ -99,6 +106,13 @@ func (h *sessionsHandler) stop(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+
+	if h.auditLog != nil {
+		h.auditLog.Log("session.stop", username, "", map[string]string{
+			"server": serverName,
+		})
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -160,6 +174,17 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 				connectURL += "&path=" + url.QueryEscape(wsPath)
 			}
 		}
+	}
+
+	if h.auditLog != nil {
+		connType := "jupyterhub"
+		if ws != nil && ws.Type == "guacamole" {
+			connType = "guacamole"
+		}
+		h.auditLog.Log("session.connect", username, "", map[string]string{
+			"server": serverName,
+			"type":   connType,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
