@@ -7,13 +7,10 @@ build:
     - image: tostada
       docker:
         dockerfile: Dockerfile
-manifests:
+deploy:
   helm:
     releases:
       - name: tostada
         chartPath: charts/tostada
         namespace: tostada
         createNamespace: true
-deploy:
-  kubectl:
-    defaultNamespace: tostada
