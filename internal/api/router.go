@@ -13,7 +13,7 @@ import (
 	"github.com/rophy/tostada/internal/telemetry"
 )
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.Store, userStore model.UserStore, auditLog *telemetry.AuditLog, accessLogger *telemetry.AccessLogger) *http.ServeMux {
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *telemetry.AuditLog, accessLogger *telemetry.AccessLogger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())
@@ -42,6 +42,27 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	}
 	authed.HandleFunc("GET /api/devices", devices.list)
 	authed.HandleFunc("GET /api/devices/{name}/connect", devices.connect)
+
+	adminMux := http.NewServeMux()
+	admin := &adminHandler{
+		userStore:   userStore,
+		deviceStore: deviceStore,
+		hubClient:   hubClient,
+		auditLog:    auditLog,
+	}
+	adminMux.HandleFunc("GET /api/admin/users", admin.listUsers)
+	adminMux.HandleFunc("PATCH /api/admin/users/{username}", admin.updateUser)
+	adminMux.HandleFunc("DELETE /api/admin/users/{username}", admin.deleteUser)
+	adminMux.HandleFunc("GET /api/admin/devices", admin.listDevices)
+	adminMux.HandleFunc("POST /api/admin/devices", admin.createDevice)
+	adminMux.HandleFunc("PUT /api/admin/devices/{name}", admin.updateDevice)
+	adminMux.HandleFunc("DELETE /api/admin/devices/{name}", admin.deleteDevice)
+	adminMux.HandleFunc("POST /api/admin/devices/{name}/grants", admin.grantAccess)
+	adminMux.HandleFunc("DELETE /api/admin/devices/{name}/grants/{username}", admin.revokeAccess)
+	adminMux.HandleFunc("GET /api/admin/sessions", admin.listSessions)
+	adminMux.HandleFunc("DELETE /api/admin/sessions/{username}/{server}", admin.stopSession)
+
+	authed.Handle("/api/admin/", AdminMiddleware(userStore)(adminMux))
 
 	authedHandler := authProvider.Middleware(authed)
 	if accessLogger != nil {
