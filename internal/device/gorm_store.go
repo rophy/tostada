@@ -60,3 +60,54 @@ func (s *GormStore) GetDevice(_ context.Context, username string, name string) (
 	}
 	return &d, nil
 }
+
+func (s *GormStore) ListAllDevices(_ context.Context) ([]DeviceWithGrants, error) {
+	var devices []Device
+	if err := s.db.Find(&devices).Error; err != nil {
+		return nil, err
+	}
+	result := make([]DeviceWithGrants, len(devices))
+	for i, d := range devices {
+		var accesses []UserAccess
+		s.db.Where("device_id = ?", d.ID).Find(&accesses)
+		grants := make([]string, len(accesses))
+		for j, a := range accesses {
+			grants[j] = a.Username
+		}
+		result[i] = DeviceWithGrants{Device: d, Grants: grants}
+	}
+	return result, nil
+}
+
+func (s *GormStore) CreateDevice(_ context.Context, d *Device) error {
+	return s.db.Create(d).Error
+}
+
+func (s *GormStore) UpdateDevice(_ context.Context, name string, updates map[string]any) error {
+	return s.db.Model(&Device{}).Where("name = ?", name).Updates(updates).Error
+}
+
+func (s *GormStore) DeleteDevice(_ context.Context, name string) error {
+	var d Device
+	if err := s.db.Where("name = ?", name).First(&d).Error; err != nil {
+		return err
+	}
+	s.db.Where("device_id = ?", d.ID).Delete(&UserAccess{})
+	return s.db.Delete(&d).Error
+}
+
+func (s *GormStore) GrantAccess(_ context.Context, deviceName string, username string) error {
+	var d Device
+	if err := s.db.Where("name = ?", deviceName).First(&d).Error; err != nil {
+		return err
+	}
+	return s.db.Create(&UserAccess{Username: username, DeviceID: d.ID}).Error
+}
+
+func (s *GormStore) RevokeAccess(_ context.Context, deviceName string, username string) error {
+	var d Device
+	if err := s.db.Where("name = ?", deviceName).First(&d).Error; err != nil {
+		return err
+	}
+	return s.db.Where("username = ? AND device_id = ?", username, d.ID).Delete(&UserAccess{}).Error
+}
