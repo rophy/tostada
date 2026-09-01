@@ -90,7 +90,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create sub FS: %v", err)
 	}
-	mux.Handle("/", http.FileServer(http.FS(distFS)))
+	fileServer := http.FileServer(http.FS(distFS))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Serve the file if it exists; otherwise fall back to index.html for SPA routing
+		if r.URL.Path != "/" {
+			if _, err := fs.Stat(distFS, r.URL.Path[1:]); err != nil {
+				r.URL.Path = "/"
+			}
+		}
+		fileServer.ServeHTTP(w, r)
+	}))
 
 	log.Printf("Tostada listening on %s", cfg.Server.Addr)
 	log.Fatal(http.ListenAndServe(cfg.Server.Addr, mux))

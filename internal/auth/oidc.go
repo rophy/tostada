@@ -247,8 +247,12 @@ func (a *Auth) LogoutHandler() http.HandlerFunc {
 
 func (a *Auth) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	username := UserFromContext(r.Context())
+	isAdmin := false
+	if a.userStore != nil {
+		isAdmin, _ = a.userStore.IsAdmin(r.Context(), username)
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"username": username})
+	json.NewEncoder(w).Encode(map[string]any{"username": username, "isAdmin": isAdmin})
 }
 
 func generateState() string {

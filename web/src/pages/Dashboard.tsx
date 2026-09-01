@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Layout, Typography, Button, Card, Table, Space, Row, Col, Spin } from 'antd'
 import {
   LoginOutlined, LogoutOutlined, LinkOutlined,
-  DesktopOutlined,
+  DesktopOutlined, SettingOutlined,
 } from '@ant-design/icons'
+import { Link } from 'react-router-dom'
 import {
-  Workspace, Server, Device,
+  Workspace, Server, Device, CurrentUser,
   fetchWorkspaces, fetchSessions, fetchCurrentUser, fetchDevices,
   launchWorkspace, stopSession, getConnectURL, getDeviceConnectInfo, logout,
 } from '../api'
@@ -19,7 +20,7 @@ export function Dashboard() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [sessions, setSessions] = useState<Record<string, Server>>({})
   const [devices, setDevices] = useState<Device[]>([])
-  const [username, setUsername] = useState<string | null>(null)
+  const [user, setUser] = useState<CurrentUser | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
 
   const refresh = async () => {
@@ -30,10 +31,10 @@ export function Dashboard() {
   }
 
   useEffect(() => {
-    fetchCurrentUser().then(user => {
-      setUsername(user)
+    fetchCurrentUser().then(u => {
+      setUser(u)
       setAuthChecked(true)
-      if (user) refresh()
+      if (u) refresh()
     })
   }, [])
 
@@ -68,7 +69,7 @@ export function Dashboard() {
     )
   }
 
-  if (!username) {
+  if (!user) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <Card style={{ textAlign: 'center', maxWidth: 400 }}>
@@ -117,7 +118,12 @@ export function Dashboard() {
       }}>
         <Title level={3} style={{ margin: 0 }}>Tostada</Title>
         <Space>
-          <span>{username}</span>
+          {user.isAdmin && (
+            <Link to="/admin">
+              <Button type="text" icon={<SettingOutlined />}>Admin</Button>
+            </Link>
+          )}
+          <span>{user.username}</span>
           <Button type="text" icon={<LogoutOutlined />} onClick={logout}>Logout</Button>
         </Space>
       </Header>

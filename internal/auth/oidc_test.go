@@ -191,12 +191,15 @@ func TestCurrentUser(t *testing.T) {
 		t.Errorf("Status = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	var resp map[string]string
+	var resp map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("Decode error: %v", err)
 	}
 	if resp["username"] != "bob" {
-		t.Errorf("username = %q, want %q", resp["username"], "bob")
+		t.Errorf("username = %v, want %q", resp["username"], "bob")
+	}
+	if resp["isAdmin"] != false {
+		t.Errorf("isAdmin = %v, want false", resp["isAdmin"])
 	}
 }
 
