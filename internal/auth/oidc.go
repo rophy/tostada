@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +29,7 @@ const (
 type Auth struct {
 	oauth2Config *oauth2.Config
 	verifier     *oidc.IDTokenVerifier
+	oidcCtx      context.Context
 	sessions     map[string]session
 	mu           sync.RWMutex
 	userStore    model.UserStore
@@ -39,31 +42,61 @@ type session struct {
 }
 
 func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string, userStore model.UserStore, auditLog *telemetry.AuditLog) (*Auth, error) {
+	oidcCtx := ctx
+	if internalURL != "" {
+		oidcCtx = oidc.InsecureIssuerURLContext(ctx, issuerURL)
+		oidcCtx = context.WithValue(oidcCtx, oauth2.HTTPClient, &http.Client{
+			Transport: &issuerRewriteTransport{
+				issuerURL:   issuerURL,
+				internalURL: internalURL,
+				base:        http.DefaultTransport,
+			},
+		})
+	}
 	discoveryURL := issuerURL
 	if internalURL != "" {
 		discoveryURL = internalURL
-		ctx = oidc.InsecureIssuerURLContext(ctx, issuerURL)
 	}
-	provider, err := oidc.NewProvider(ctx, discoveryURL)
+	provider, err := oidc.NewProvider(oidcCtx, discoveryURL)
 	if err != nil {
 		return nil, err
 	}
-
-	endpoint := provider.Endpoint()
 
 	return &Auth{
 		oauth2Config: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
 			RedirectURL:  redirectURL,
-			Endpoint:     endpoint,
+			Endpoint:     provider.Endpoint(),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		},
 		verifier:  provider.Verifier(&oidc.Config{ClientID: clientID}),
+		oidcCtx:   oidcCtx,
 		sessions:  make(map[string]session),
 		userStore: userStore,
 		auditLog:  auditLog,
 	}, nil
+}
+
+type issuerRewriteTransport struct {
+	issuerURL   string
+	internalURL string
+	base        http.RoundTripper
+}
+
+func (t *issuerRewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	reqURL := req.URL.String()
+	if strings.HasPrefix(reqURL, t.issuerURL) {
+		rewritten := strings.Replace(reqURL, t.issuerURL, t.internalURL, 1)
+		u, err := url.Parse(rewritten)
+		if err != nil {
+			return nil, err
+		}
+		req = req.Clone(req.Context())
+		req.URL = u
+		req.Host = u.Host
+	}
+	return t.base.RoundTrip(req)
 }
 
 func (a *Auth) LoginHandler() http.HandlerFunc {
@@ -89,7 +122,12 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 			return
 		}
 
-		token, err := a.oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
+		ctx := r.Context()
+		if a.oidcCtx != nil {
+			ctx = a.oidcCtx
+		}
+
+		token, err := a.oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
 		if err != nil {
 			log.Printf("Token exchange failed: %v", err)
 			http.Error(w, "token exchange failed", http.StatusInternalServerError)
@@ -102,7 +140,7 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 			return
 		}
 
-		idToken, err := a.verifier.Verify(r.Context(), rawIDToken)
+		idToken, err := a.verifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			log.Printf("Token verification failed: %v", err)
 			http.Error(w, "token verification failed", http.StatusInternalServerError)
@@ -118,6 +156,9 @@ func (a *Auth) CallbackHandler() http.HandlerFunc {
 		username := claims.PreferredUsername
 		if username == "" {
 			username = claims.Email
+		}
+		if username == "" {
+			username = idToken.Subject
 		}
 
 		if a.userStore != nil {

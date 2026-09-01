@@ -1,7 +1,9 @@
 domain: ${DOMAIN}
 
-oidc:
-  internalURL: "http://tostada-oidc-mock-1:8080"
+oidcMock:
+  issuer: "https://${DOMAIN}"
+  redirectURIs:
+    - "https://${DOMAIN}/api/auth/callback"
 
 guacamole:
   jsonSecretKey: "${GUACAMOLE_JSON_SECRET_KEY}"

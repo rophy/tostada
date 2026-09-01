@@ -1,4 +1,4 @@
-domain: tostada.example.com
+domain: localhost:30080
 
 tostada:
   image: tostada
@@ -7,7 +7,7 @@ tostada:
 oidc:
   clientID: "tostada"
   clientSecret: "tostada-secret"
-  redirectURL: "https://tostada.example.com/api/auth/callback"
+  internalURL: "http://oidc-mock:8080"
 
 guacamole:
   url: "http://guacamole:8080"
@@ -19,6 +19,23 @@ guacamole:
 
 database:
   path: "/data/tostada.db"
+
+oidcMock:
+  enabled: true
+  image: ghcr.io/rophy/oidc-mock:latest
+  nodePort: 30081
+  issuer: "http://localhost:30081"
+  redirectURIs:
+    - "http://localhost:30080/api/auth/callback"
+  users:
+    - sub: alice
+      email: alice@example.com
+      name: Alice
+      preferred_username: alice
+    - sub: bob
+      email: bob@example.com
+      name: Bob
+      preferred_username: bob
 
 workspaces:
   - name: jupyter

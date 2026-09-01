@@ -1,11 +1,6 @@
-networks:
-  kind:
-    external: true
-
 services:
   nginx:
     image: nginx:alpine
-    networks: [kind]
     ports:
       - "127.0.0.1:${LISTEN_PORT}:8080"
     volumes:
@@ -13,26 +8,3 @@ services:
     environment:
       - GATEWAY_HOST=${GATEWAY_HOST}
       - GATEWAY_NODEPORT=${GATEWAY_NODEPORT}
-    depends_on:
-      - oidc-mock
-
-  oidc-mock:
-    image: ghcr.io/rophy/oidc-mock:latest
-    networks: [kind]
-    environment:
-      OIDC_CONFIG: |
-        issuer: https://${DOMAIN}
-        clients:
-          - id: tostada
-            secret: tostada-secret
-            redirect_uris:
-              - https://${DOMAIN}/api/auth/callback
-        users:
-          - sub: alice
-            email: alice@example.com
-            name: Alice
-            preferred_username: alice
-          - sub: bob
-            email: bob@example.com
-            name: Bob
-            preferred_username: bob

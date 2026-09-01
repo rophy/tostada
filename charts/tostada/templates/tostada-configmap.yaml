@@ -1,3 +1,4 @@
+{{- $scheme := ternary "https" "http" (not (hasPrefix "localhost" .Values.domain)) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,13 +8,13 @@ data:
     server:
       addr: ":8080"
     oidc:
-      issuerURL: "https://{{ .Values.domain }}"
+      issuerURL: {{ .Values.oidcMock.issuer | quote }}
       {{- if .Values.oidc.internalURL }}
       internalURL: {{ .Values.oidc.internalURL | quote }}
       {{- end }}
       clientID: {{ .Values.oidc.clientID | quote }}
       clientSecret: {{ .Values.oidc.clientSecret | quote }}
-      redirectURL: "https://{{ .Values.domain }}/api/auth/callback"
+      redirectURL: "{{ $scheme }}://{{ .Values.domain }}/api/auth/callback"
     jupyterhub:
       apiURL: "http://hub:8081/hub/api"
       apiToken: {{ .Values.jupyterhub.hub.services.tostada.api_token | quote }}

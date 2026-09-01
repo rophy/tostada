@@ -1,0 +1,59 @@
+{{- if .Values.oidcMock.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oidc-mock-config
+data:
+  config.yaml: |
+    issuer: {{ .Values.oidcMock.issuer | quote }}
+    clients:
+      - id: {{ .Values.oidc.clientID | quote }}
+        secret: {{ .Values.oidc.clientSecret | quote }}
+        redirect_uris:
+          {{- range .Values.oidcMock.redirectURIs }}
+          - {{ . | quote }}
+          {{- end }}
+    users:
+      {{- toYaml .Values.oidcMock.users | nindent 6 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oidc-mock
+  template:
+    metadata:
+      labels:
+        app: oidc-mock
+    spec:
+      containers:
+        - name: oidc-mock
+          image: {{ .Values.oidcMock.image }}
+          args: ["-config", "/config/config.yaml"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: oidc-mock-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oidc-mock
+spec:
+  type: NodePort
+  selector:
+    app: oidc-mock
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: {{ .Values.oidcMock.nodePort }}
+{{- end }}

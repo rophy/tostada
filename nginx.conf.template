@@ -6,27 +6,6 @@ map $http_upgrade $connection_upgrade {
 server {
     listen 8080;
 
-    location /.well-known/openid-configuration {
-        proxy_pass http://oidc-mock:8080;
-        proxy_set_header Host $host;
-    }
-    location /authorize {
-        proxy_pass http://oidc-mock:8080$request_uri;
-        proxy_set_header Host $host;
-    }
-    location /token {
-        proxy_pass http://oidc-mock:8080$request_uri;
-        proxy_set_header Host $host;
-    }
-    location /jwks {
-        proxy_pass http://oidc-mock:8080;
-        proxy_set_header Host $host;
-    }
-    location /userinfo {
-        proxy_pass http://oidc-mock:8080;
-        proxy_set_header Host $host;
-    }
-
     location / {
         proxy_pass http://${GATEWAY_HOST}:${GATEWAY_NODEPORT};
         proxy_set_header Host $host;

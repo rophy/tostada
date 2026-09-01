@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-const defaultBaseURL = "http://localhost:12025"
+const defaultBaseURL = "http://localhost:30080"
 
 func BaseURL() string {
 	if v := os.Getenv("TOSTADA_E2E_URL"); v != "" {
@@ -46,27 +46,12 @@ func NewClient(t *testing.T) *Client {
 	}
 }
 
-// toLocal rewrites an absolute URL (which may point to the external domain)
-// to go through the local base URL instead.
-func (c *Client) toLocal(rawURL string) string {
-	if strings.HasPrefix(rawURL, "/") {
-		return c.BaseURL + rawURL
-	}
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return rawURL
-	}
-	base, _ := url.Parse(c.BaseURL)
-	parsed.Scheme = base.Scheme
-	parsed.Host = base.Host
-	return parsed.String()
-}
-
 // Login performs the full OIDC login flow against the mock provider.
+// In the default localhost setup, all redirects stay on localhost — no URL rewriting needed.
 func (c *Client) Login(username string) {
 	c.T.Helper()
 
-	// Step 1: GET /api/auth/login — redirects to /authorize?... on the external domain
+	// Step 1: GET /api/auth/login — redirects to /authorize on the OIDC issuer
 	resp, err := c.HTTP.Get(c.BaseURL + "/api/auth/login")
 	if err != nil {
 		c.T.Fatalf("login request: %v", err)
@@ -76,7 +61,7 @@ func (c *Client) Login(username string) {
 		c.T.Fatalf("login: expected 302, got %d", resp.StatusCode)
 	}
 
-	authorizeURL := c.toLocal(resp.Header.Get("Location"))
+	authorizeURL := resp.Header.Get("Location")
 	if authorizeURL == "" {
 		c.T.Fatal("login: no Location header")
 	}
@@ -89,23 +74,20 @@ func (c *Client) Login(username string) {
 	resp.Body.Close()
 
 	// Step 3: POST to /authorize/callback with the selected user's sub.
-	// The oidc-mock form fields: sub, client_id, redirect_uri, state, nonce.
 	parsedAuth, _ := url.Parse(authorizeURL)
 	q := parsedAuth.Query()
 
-	// Find the sub value for the requested username.
-	// The mock maps sub=alice→preferred_username=alice, sub=bob→preferred_username=bob.
-	sub := username
-
+	issuerBase := parsedAuth.Scheme + "://" + parsedAuth.Host
 	formData := url.Values{
-		"sub":          {sub},
+		"sub":          {username},
 		"client_id":    {q.Get("client_id")},
 		"redirect_uri": {q.Get("redirect_uri")},
 		"state":        {q.Get("state")},
 		"nonce":        {q.Get("nonce")},
+		"scope":        {q.Get("scope")},
 	}
 
-	resp, err = c.HTTP.PostForm(c.BaseURL+"/authorize/callback", formData)
+	resp, err = c.HTTP.PostForm(issuerBase+"/authorize/callback", formData)
 	if err != nil {
 		c.T.Fatalf("authorize POST: %v", err)
 	}
@@ -115,8 +97,7 @@ func (c *Client) Login(username string) {
 	}
 
 	// Step 4: Follow redirect to /api/auth/callback?code=...&state=...
-	// The Location may point to the external domain — rewrite to localhost.
-	callbackURL := c.toLocal(resp.Header.Get("Location"))
+	callbackURL := resp.Header.Get("Location")
 	if callbackURL == "" {
 		c.T.Fatal("authorize: no callback Location")
 	}
@@ -127,8 +108,7 @@ func (c *Client) Login(username string) {
 	}
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusFound {
-		body := "(no body)"
-		c.T.Fatalf("callback: expected 302, got %d; body: %s", resp.StatusCode, body)
+		c.T.Fatalf("callback: expected 302, got %d", resp.StatusCode)
 	}
 
 	// Verify session cookie

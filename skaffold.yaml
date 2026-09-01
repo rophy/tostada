@@ -14,8 +14,17 @@ manifests:
         chartPath: charts/tostada
         namespace: tostada
         createNamespace: true
-        valuesFiles:
-          - charts/tostada/values-local.yaml
 deploy:
   kubectl:
     defaultNamespace: tostada
+profiles:
+  - name: local
+    manifests:
+      helm:
+        releases:
+          - name: tostada
+            chartPath: charts/tostada
+            namespace: tostada
+            createNamespace: true
+            valuesFiles:
+              - charts/tostada/values-local.yaml

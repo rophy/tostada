@@ -1,29 +1,33 @@
-.PHONY: help up down build test e2e e2e-api values-local
+.PHONY: help up down build test e2e e2e-api local-up local-down
 .DEFAULT_GOAL := help
 
 CLUSTER_NAME := tostada
 KUBE_CTX := kind-$(CLUSTER_NAME)
-VALUES_LOCAL := charts/tostada/values-local.yaml
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "%-15s %s\n", $$1, $$2}'
 
-values-local: .env charts/tostada/values-local.yaml.tpl ## Generate Helm values from .env
-	@set -a && . ./.env && set +a && envsubst < charts/tostada/values-local.yaml.tpl > $(VALUES_LOCAL)
-	@echo "Generated $(VALUES_LOCAL)"
-
-up: values-local ## Create cluster and deploy everything
+up: ## Create cluster and deploy everything (localhost, no external domain)
 	kind create cluster --name $(CLUSTER_NAME) --config kind-config.yaml 2>/dev/null || true
 	kubectl --context $(KUBE_CTX) create namespace tostada 2>/dev/null || true
-	docker compose up -d
 	skaffold run --kube-context $(KUBE_CTX)
 
-down: ## Tear down cluster and stop compose
-	skaffold delete --kube-context $(KUBE_CTX)
-	docker compose down
+down: ## Tear down cluster
+	skaffold delete --kube-context $(KUBE_CTX) 2>/dev/null || true
 	@if kind get clusters 2>/dev/null | grep -q '^$(CLUSTER_NAME)$$'; then \
 		kind delete cluster --name $(CLUSTER_NAME); \
 	fi
+
+local-up: ## Overlay external domain from .env (nginx proxy + HTTPS OIDC)
+	@test -f .env || { echo "Error: .env not found. Copy .env.example and configure DOMAIN."; exit 1; }
+	@set -a && . ./.env && set +a && envsubst < charts/tostada/values-local.yaml.tpl > charts/tostada/values-local.yaml
+	@echo "Generated charts/tostada/values-local.yaml"
+	docker compose up -d
+	skaffold run --kube-context $(KUBE_CTX) -p local
+
+local-down: ## Remove domain overlay, restore localhost defaults
+	docker compose down 2>/dev/null || true
+	skaffold run --kube-context $(KUBE_CTX)
 
 build: ## Build Go binary and frontend
 	cd web && npm run build
