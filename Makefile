@@ -1,4 +1,4 @@
-.PHONY: help up down build test e2e e2e-api local-up local-down
+.PHONY: help up down build test e2e e2e-api
 .DEFAULT_GOAL := help
 
 CLUSTER_NAME := tostada
@@ -17,17 +17,6 @@ down: ## Tear down cluster
 	@if kind get clusters 2>/dev/null | grep -q '^$(CLUSTER_NAME)$$'; then \
 		kind delete cluster --name $(CLUSTER_NAME); \
 	fi
-
-local-up: ## Overlay external domain from .env (nginx proxy + HTTPS OIDC)
-	@test -f .env || { echo "Error: .env not found. Copy .env.example and configure DOMAIN."; exit 1; }
-	@set -a && . ./.env && set +a && envsubst < charts/tostada/values-local.yaml.tpl > charts/tostada/values-local.yaml
-	@echo "Generated charts/tostada/values-local.yaml"
-	docker compose up -d
-	skaffold run --kube-context $(KUBE_CTX) -p local
-
-local-down: ## Remove domain overlay, restore localhost defaults
-	docker compose down 2>/dev/null || true
-	skaffold run --kube-context $(KUBE_CTX)
 
 build: ## Build Go binary and frontend
 	cd web && npm run build

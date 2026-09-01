@@ -1,9 +1,9 @@
 ## Deployment
 
-- `make up` deploys everything (kind cluster, docker-compose, Helm chart)
-- Local configuration lives in `.env` (gitignored) — see `.env.example`
-- `.env` is the single source of truth; `charts/tostada/values-local.yaml` is auto-generated from it
-- See `README.md` for full deployment flow and prerequisites
+- `make up` deploys everything (kind cluster + Helm chart via skaffold)
+- `make down` tears down the cluster
+- `make e2e` runs e2e tests (requires `make up` first)
+- No `.env` or docker-compose needed — everything runs on localhost via kind NodePorts
 
 ## Development Policy
 
