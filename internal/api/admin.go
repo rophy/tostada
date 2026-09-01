@@ -235,10 +235,33 @@ func (h *adminHandler) listSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// JupyterHub list-all-users requires admin scope, which we have via service token
-	// For now, return empty — full implementation requires hub.ListUsers method
+	users, err := h.hubClient.ListUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	type sessionInfo struct {
+		Username   string `json:"username"`
+		ServerName string `json:"serverName"`
+		Ready      bool   `json:"ready"`
+		URL        string `json:"url"`
+	}
+
+	var sessions []sessionInfo
+	for _, u := range users {
+		for name, srv := range u.Servers {
+			sessions = append(sessions, sessionInfo{
+				Username:   u.Name,
+				ServerName: name,
+				Ready:      srv.Ready,
+				URL:        srv.URL,
+			})
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]any{})
+	json.NewEncoder(w).Encode(sessions)
 }
 
 func (h *adminHandler) stopSession(w http.ResponseWriter, r *http.Request) {

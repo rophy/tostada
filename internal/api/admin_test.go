@@ -339,6 +339,69 @@ func TestAdminListSessions_NoHubClient(t *testing.T) {
 	}
 }
 
+func TestAdminListSessions(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[{"name":"alice","servers":{"default":{"name":"default","ready":true,"url":"/user/alice/default/"}}}]`))
+	}))
+	defer hubSrv.Close()
+
+	userStore, _ := testUserStore(t)
+	h := &adminHandler{
+		userStore: userStore,
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+		auditLog:  testAuditLog(t),
+	}
+
+	req := httptest.NewRequest("GET", "/api/admin/sessions", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), "admin"))
+	rec := httptest.NewRecorder()
+	h.listSessions(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+
+	var sessions []struct {
+		Username   string `json:"username"`
+		ServerName string `json:"serverName"`
+		Ready      bool   `json:"ready"`
+		URL        string `json:"url"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&sessions); err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("len = %d, want 1", len(sessions))
+	}
+	if sessions[0].Username != "alice" || sessions[0].ServerName != "default" || !sessions[0].Ready {
+		t.Errorf("unexpected session: %+v", sessions[0])
+	}
+}
+
+func TestAdminListSessions_HubError(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	userStore, _ := testUserStore(t)
+	h := &adminHandler{
+		userStore: userStore,
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+		auditLog:  testAuditLog(t),
+	}
+
+	req := httptest.NewRequest("GET", "/api/admin/sessions", nil)
+	req = req.WithContext(auth.WithUser(req.Context(), "admin"))
+	rec := httptest.NewRecorder()
+	h.listSessions(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
 func TestAdminStopSession_NoHubClient(t *testing.T) {
 	userStore, _ := testUserStore(t)
 	h := &adminHandler{userStore: userStore, auditLog: testAuditLog(t)}

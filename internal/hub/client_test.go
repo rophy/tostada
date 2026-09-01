@@ -49,6 +49,44 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
+func TestListUsers(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/users" {
+			t.Errorf("Path = %q, want /users", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode([]User{
+			{
+				Name: "alice",
+				Servers: map[string]Server{
+					"default": {Name: "default", Ready: true, URL: "/user/alice/default/"},
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	users, err := client.ListUsers()
+	if err != nil {
+		t.Fatalf("ListUsers() error: %v", err)
+	}
+	if len(users) != 1 || users[0].Name != "alice" {
+		t.Fatalf("users = %+v", users)
+	}
+}
+
+func TestListUsers_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	if _, err := client.ListUsers(); err == nil {
+		t.Fatal("ListUsers() expected error")
+	}
+}
+
 func TestSpawnServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

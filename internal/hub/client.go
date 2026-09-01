@@ -56,6 +56,25 @@ func (c *Client) do(method, path string, body any) (*http.Response, error) {
 	return c.http.Do(req)
 }
 
+func (c *Client) ListUsers() ([]User, error) {
+	resp, err := c.do(http.MethodGet, "/users", nil)
+	if err != nil {
+		return nil, fmt.Errorf("listing users: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("list users failed (%d): %s", resp.StatusCode, body)
+	}
+
+	var users []User
+	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
+		return nil, fmt.Errorf("decoding users: %w", err)
+	}
+	return users, nil
+}
+
 func (c *Client) GetUser(username string) (*User, error) {
 	resp, err := c.do(http.MethodGet, "/users/"+username, nil)
 	if err != nil {
