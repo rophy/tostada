@@ -1,12 +1,15 @@
+ARG DEVELOPMENT=0
+
 FROM node:22-alpine AS frontend
+ARG DEVELOPMENT
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
-RUN npm run build
+RUN DEVELOPMENT=$DEVELOPMENT npm run build
 
 FROM golang:1.22-alpine AS backend
-ARG DEVELOPMENT=0
+ARG DEVELOPMENT
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
