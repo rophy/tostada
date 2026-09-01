@@ -5,7 +5,7 @@ CLUSTER_NAME := tostada
 KUBE_CTX := kind-$(CLUSTER_NAME)
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "%-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "%-15s %s\n", $$1, $$2}'
 
 up: ## Create cluster and deploy everything (localhost, no external domain)
 	kind create cluster --name $(CLUSTER_NAME) --config kind-config.yaml 2>/dev/null || true
