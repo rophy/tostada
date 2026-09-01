@@ -29,6 +29,7 @@ unit-test: ## Run unit tests with coverage
 
 e2e-test: ## Run e2e tests and collect server coverage (requires make up)
 	go test -tags e2e ./e2e/... -v -count=1
+	cd e2e/web && npx playwright test
 	@echo "Flushing coverage from server..."
 	@mkdir -p coverage-e2e
 	@curl -sf -X POST http://localhost:30080/debug/coverage/flush | tar xf - -C coverage-e2e

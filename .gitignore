@@ -6,6 +6,9 @@ coverage.out
 coverage-e2e/
 coverage-e2e.out
 web/coverage/
+e2e/web/node_modules/
+e2e/web/test-results/
+e2e/web/playwright-report/
 charts/tostada/charts/
 charts/tostada/Chart.lock
 charts/tostada/values-local.yaml
