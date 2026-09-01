@@ -58,51 +58,22 @@ Tostada uses **JupyterHub** as its orchestration layer — handling authenticati
 
 ## Deployment
 
-Local development runs on a kind cluster with docker-compose providing the reverse proxy and OIDC mock.
+Local development runs entirely on a kind cluster — no docker-compose or external dependencies needed.
 
 ### Prerequisites
 
 - [kind](https://kind.sigs.k8s.io/)
 - [skaffold](https://skaffold.dev/)
 - [Helm](https://helm.sh/)
-- [Docker Compose](https://docs.docker.com/compose/)
 - Go, Node.js (use [mise](https://mise.jdx.dev/) — see `mise.toml`)
 
 ### Setup
-
-1. Copy `.env.example` to `.env` and adjust values:
-
-```sh
-cp .env.example .env
-```
-
-2. Build Helm chart dependencies:
-
-```sh
-helm dependency build charts/tostada
-```
-
-3. Deploy everything:
 
 ```sh
 make up
 ```
 
-This creates the kind cluster, starts docker-compose (nginx proxy + OIDC mock), generates Helm values from `.env`, and deploys via skaffold.
-
-### What `make up` does
-
-```
-.env  ──envsubst──▶  values-local.yaml  ──▶  Helm chart (tostada + jupyterhub subchart)
-                                                │
-docker-compose (nginx + oidc-mock)              │
-       │                                        ▼
-       └──────▶  kind cluster  ◀────────  skaffold run
-```
-
-- **docker-compose nginx** — single entry point, proxies OIDC endpoints to oidc-mock and everything else to the kind cluster gateway
-- **skaffold** — builds the tostada image and deploys the Helm chart
-- **values-local.yaml** — auto-generated from `.env`, gitignored
+This creates a kind cluster with an in-cluster OIDC mock, builds the tostada image, and deploys everything via skaffold + Helm.
 
 ### Available targets
 
@@ -115,3 +86,53 @@ make help
 ```sh
 make down
 ```
+
+## Audit Logs
+
+Tostada writes structured JSONL audit logs for security and operational visibility. Logs are rotated automatically via [lumberjack](https://github.com/natefinlyfree/lumberjack).
+
+### Log files
+
+| File | Purpose |
+|---|---|
+| `audit.jsonl` | User and admin actions (login, logout, session spawn/stop, admin operations) |
+| `access.jsonl` | HTTP request log (method, path, user, status, duration, IP) |
+
+Default location: `/data/logs/`. Configurable via:
+
+```yaml
+auditLog:
+  logDir: /data/logs
+  maxSizeMB: 50    # max size per file before rotation (default: 50)
+  maxBackups: 5    # number of rotated files to keep (default: 5)
+```
+
+### Audit events
+
+| Event | Description |
+|---|---|
+| `auth.login` | User logged in via OIDC |
+| `auth.logout` | User logged out |
+| `session.spawn` | User launched a workspace session |
+| `session.stop` | User stopped their session |
+| `session.connect` | User connected to a running session |
+| `device.connect` | User connected to a device |
+| `admin.user.update` | Admin modified a user (e.g. grant/revoke admin) |
+| `admin.user.delete` | Admin deleted a user |
+| `admin.device.add` | Admin added a device |
+| `admin.device.update` | Admin updated a device |
+| `admin.device.remove` | Admin removed a device |
+| `admin.device.grant` | Admin granted user access to a device |
+| `admin.device.revoke` | Admin revoked user access to a device |
+| `admin.session.stop` | Admin stopped another user's session |
+
+### Example entries
+
+```json
+{"ts":"2026-09-01T12:00:00.000Z","event":"session.spawn","user":"alice","detail":{"workspace":"kasmvnc-ubuntu","server":"e2e-123"}}
+{"ts":"2026-09-01T12:00:05.000Z","event":"admin.session.stop","user":"alice","actor":"admin","detail":{"server":"e2e-123"}}
+```
+
+### Integration with log shippers
+
+Logs are plain JSONL files with automatic rotation (no compression), making them straightforward to tail with Filebeat, Fluentd, Promtail, or similar log shippers.
