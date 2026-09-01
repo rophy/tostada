@@ -1,4 +1,4 @@
-.PHONY: help up down build test e2e e2e-api
+.PHONY: help up down build unit-test e2e-test
 .DEFAULT_GOAL := help
 
 CLUSTER_NAME := tostada
@@ -22,13 +22,15 @@ build: ## Build Go binary and frontend
 	cd web && npm run build
 	go build ./cmd/tostada/
 
-test: ## Run all tests with coverage
+unit-test: ## Run unit tests with coverage
 	go test ./... -v -coverprofile=coverage.out
 	@go tool cover -func=coverage.out | tail -1
 	cd web && npx vitest run --coverage
 
-e2e: ## Run all e2e tests (requires make up)
+e2e-test: ## Run e2e tests and collect server coverage (requires make up)
 	go test -tags e2e ./e2e/... -v -count=1
-
-e2e-api: ## Run API e2e tests only
-	go test -tags e2e ./e2e/api/ -v -count=1
+	@echo "Flushing coverage from server..."
+	@mkdir -p coverage-e2e
+	@curl -sf -X POST http://localhost:30080/debug/coverage/flush | tar xf - -C coverage-e2e
+	@go tool covdata textfmt -i=coverage-e2e -o=coverage-e2e.out
+	@go tool cover -func=coverage-e2e.out | tail -1

@@ -6,12 +6,17 @@ COPY web/ ./
 RUN npm run build
 
 FROM golang:1.22-alpine AS backend
+ARG DEVELOPMENT=0
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/web/dist ./web/dist
-RUN CGO_ENABLED=0 go build -o /tostada ./cmd/tostada/
+RUN if [ "$DEVELOPMENT" = "1" ]; then \
+      CGO_ENABLED=0 go build -cover -covermode=atomic -tags coverage -o /tostada ./cmd/tostada/; \
+    else \
+      CGO_ENABLED=0 go build -o /tostada ./cmd/tostada/; \
+    fi
 RUN CGO_ENABLED=0 go build -o /tostada-cli ./cmd/tostada-cli/
 
 FROM alpine:3.20

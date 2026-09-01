@@ -3,6 +3,8 @@
 .env
 .playwright-mcp/
 coverage.out
+coverage-e2e/
+coverage-e2e.out
 web/coverage/
 charts/tostada/charts/
 charts/tostada/Chart.lock

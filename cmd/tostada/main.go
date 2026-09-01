@@ -20,6 +20,8 @@ import (
 	"github.com/rophy/tostada/web"
 )
 
+var registerCoverageHandler func(mux *http.ServeMux)
+
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -85,6 +87,10 @@ func main() {
 	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, cfg.JupyterHub.APIToken)
 
 	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger)
+
+	if registerCoverageHandler != nil {
+		registerCoverageHandler(mux)
+	}
 
 	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {

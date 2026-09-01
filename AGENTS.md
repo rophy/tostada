@@ -1,13 +1,13 @@
 ## Deployment
 
-- `make up` deploys everything (kind cluster + Helm chart via skaffold)
+- `make up` deploys everything (kind cluster + Helm chart via skaffold, with coverage instrumentation)
 - `make down` tears down the cluster
-- `make e2e` runs e2e tests (requires `make up` first)
+- `make e2e-test` runs e2e tests and collects server coverage (requires `make up` first)
 - No `.env` or docker-compose needed — everything runs on localhost via kind NodePorts
 
 ## Development Policy
 
-1. Always run `make test` before committing. All tests must pass.
+1. Always run `make unit-test` before committing. All tests must pass.
 2. Test coverage must be above 80% for both Go and TypeScript before pushing. If coverage drops below 80%, add tests before pushing.
 3. All errors must be fixed before pushing. There is no such thing as "pre-existing errors" — if you see a failing test or lint error, fix it regardless of when it was introduced.
 
