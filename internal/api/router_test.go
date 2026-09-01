@@ -51,7 +51,7 @@ func TestNewRouter(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store)
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil)
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -64,7 +64,7 @@ func TestNewRouter_WithOIDCProxy(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store)
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil)
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}

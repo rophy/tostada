@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/rophy/tostada/internal/api"
@@ -13,6 +15,8 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
+	"github.com/rophy/tostada/internal/model"
+	"github.com/rophy/tostada/internal/telemetry"
 	"github.com/rophy/tostada/web"
 )
 
@@ -57,7 +61,28 @@ func main() {
 		log.Fatalf("Failed to initialize device store: %v", err)
 	}
 
-	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore)
+	if err := deviceStore.DB().AutoMigrate(&model.User{}); err != nil {
+		log.Fatalf("Failed to migrate user store: %v", err)
+	}
+	userStore := model.NewGormUserStore(deviceStore.DB())
+
+	logDir := cfg.Telemetry.LogDir
+	if logDir == "" {
+		logDir = "/data/logs"
+	}
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Fatalf("Failed to create log dir: %v", err)
+	}
+	auditLog, err := telemetry.NewAuditLog(filepath.Join(logDir, "audit.jsonl"))
+	if err != nil {
+		log.Fatalf("Failed to initialize audit log: %v", err)
+	}
+	accessLogger, err := telemetry.NewAccessLogger(filepath.Join(logDir, "access.jsonl"))
+	if err != nil {
+		log.Fatalf("Failed to initialize access logger: %v", err)
+	}
+
+	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger)
 
 	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {

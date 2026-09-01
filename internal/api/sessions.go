@@ -13,12 +13,14 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/guacamole"
 	"github.com/rophy/tostada/internal/hub"
+	"github.com/rophy/tostada/internal/telemetry"
 )
 
 type sessionsHandler struct {
 	hubClient  *hub.Client
 	workspaces []config.Workspace
 	guacCfg    config.GuacamoleConfig
+	auditLog   *telemetry.AuditLog
 }
 
 func profileSlug(displayName string) string {
