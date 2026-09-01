@@ -1,4 +1,4 @@
-.PHONY: help up down build test values-local
+.PHONY: help up down build test e2e e2e-api values-local
 .DEFAULT_GOAL := help
 
 CLUSTER_NAME := tostada
@@ -33,3 +33,9 @@ test: ## Run all tests with coverage
 	go test ./... -v -coverprofile=coverage.out
 	@go tool cover -func=coverage.out | tail -1
 	cd web && npx vitest run --coverage
+
+e2e: ## Run all e2e tests (requires make up)
+	go test -tags e2e ./e2e/... -v -count=1
+
+e2e-api: ## Run API e2e tests only
+	go test -tags e2e ./e2e/api/ -v -count=1
