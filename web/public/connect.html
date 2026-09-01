@@ -328,8 +328,9 @@ function startConnection(token, connId) {
   keyboard.onkeydown = function(keysym) { guac.sendKeyEvent(1, keysym); };
   keyboard.onkeyup = function(keysym) { guac.sendKeyEvent(0, keysym); };
 
-  // Attach mouse/touch to the non-transformed container, not the CSS-scaled
-  // display element — see https://github.com/rophy/tostada/issues/2
+  // Compensate for CSS scale transform — fromClientPosition doesn't account
+  // for CSS transforms, so divide by scale to get desktop coords (#2)
+  var displayElement = guacDisplay.getElement();
   function toDesktopCoords(mouseState) {
     var scale = guacDisplay.getScale();
     mouseState.x /= scale;
@@ -337,10 +338,10 @@ function startConnection(token, connId) {
     guac.sendMouseState(mouseState);
   }
 
-  var mouse = new Guacamole.Mouse(displayEl);
+  var mouse = new Guacamole.Mouse(displayElement);
   mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = toDesktopCoords;
 
-  var touch = new Guacamole.Mouse.Touchscreen(displayEl);
+  var touch = new Guacamole.Mouse.Touchscreen(displayElement);
   touch.onmousedown = touch.onmouseup = touch.onmousemove = toDesktopCoords;
 
   log("Authenticating...");
