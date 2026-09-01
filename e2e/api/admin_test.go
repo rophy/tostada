@@ -12,12 +12,12 @@ import (
 
 func TestAdminUsers_Forbidden(t *testing.T) {
 	c := helpers.NewClient(t)
-	c.Login("alice")
+	c.Login("bob")
 
 	resp := c.Get("/api/admin/users")
 	defer resp.Body.Close()
 
-	// 403 if admin API is deployed but alice isn't admin.
+	// 403 if admin API is deployed but bob isn't admin.
 	// 404 if admin API isn't deployed yet.
 	if resp.StatusCode == http.StatusNotFound {
 		t.Skip("admin API not deployed — redeploy with admin routes")
