@@ -1,13 +1,10 @@
 *.db
 *.png
 .env
-.env.example
 .playwright-mcp/
 coverage.out
 web/coverage/
 charts/tostada/charts/
 charts/tostada/Chart.lock
 charts/tostada/values-local.yaml
-charts/tostada/values-local.yaml.tpl
-docker-compose.yaml
-nginx.conf.template
+local/
