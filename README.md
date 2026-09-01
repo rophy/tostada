@@ -16,28 +16,23 @@ Tostada uses **JupyterHub** as its orchestration layer — handling authenticati
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────┐
-│                   Tostada Portal                │
-│            (custom UI + guacamole-common-js)     │
-└────────────────────┬────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────┐
-│              JupyterHub + KubeSpawner            │
-│          (auth · spawning · proxy routing)        │
-└──┬──────────┬──────────┬──────────┬─────────────┘
-   │          │          │          │
-   ▼          ▼          ▼          ▼
-┌──────┐ ┌────────┐ ┌────────┐ ┌────────┐
-│Jupyter│ │KasmVNC │ │  xrdp  │ │  VNC   │
-│  Pod  │ │  Pod   │ │  Pod   │ │  Pod   │
-│       │ │  :6901 │ │  :3389 │ │  :5900 │
-└──────┘ └────────┘ └──┬─────┘ └──┬─────┘
-                        │          │
-                     ┌──▼──────────▼──┐
-                     │     guacd      │
-                     │ (protocol GW)  │
-                     └────────────────┘
+```mermaid
+graph TD
+    Portal["Tostada Portal<br/><i>custom UI + guacamole-common-js</i>"]
+    Hub["JupyterHub + KubeSpawner<br/><i>auth · spawning · proxy routing</i>"]
+    Jupyter["Jupyter Pod"]
+    Kasm["KasmVNC Pod<br/>:6901"]
+    Xrdp["xrdp Pod<br/>:3389"]
+    VNC["VNC Pod<br/>:5900"]
+    Guacd["guacd<br/><i>protocol gateway</i>"]
+
+    Portal --> Hub
+    Hub --> Jupyter
+    Hub --> Kasm
+    Hub --> Xrdp
+    Hub --> VNC
+    Xrdp --> Guacd
+    VNC --> Guacd
 ```
 
 ## Key Design Decisions
