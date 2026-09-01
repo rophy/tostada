@@ -1,10 +1,12 @@
-package telemetry
+package audit
 
 import (
 	"encoding/json"
-	"os"
+	"io"
 	"sync"
 	"time"
+
+	"gopkg.in/lumberjack.v2"
 )
 
 type auditEntry struct {
@@ -16,16 +18,18 @@ type auditEntry struct {
 }
 
 type AuditLog struct {
-	f  *os.File
+	w  io.WriteCloser
 	mu sync.Mutex
 }
 
-func NewAuditLog(path string) (*AuditLog, error) {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
+func NewAuditLog(path string, maxSizeMB, maxBackups int) *AuditLog {
+	return &AuditLog{
+		w: &lumberjack.Logger{
+			Filename:   path,
+			MaxSize:    maxSizeMB,
+			MaxBackups: maxBackups,
+		},
 	}
-	return &AuditLog{f: f}, nil
 }
 
 func (a *AuditLog) Log(event, user, actor string, detail map[string]string) {
@@ -43,9 +47,9 @@ func (a *AuditLog) Log(event, user, actor string, detail map[string]string) {
 	data = append(data, '\n')
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.f.Write(data)
+	a.w.Write(data)
 }
 
 func (a *AuditLog) Close() error {
-	return a.f.Close()
+	return a.w.Close()
 }

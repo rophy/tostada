@@ -13,7 +13,7 @@ import (
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -33,13 +33,10 @@ func testUserStore(t *testing.T) (*model.GormUserStore, *gorm.DB) {
 	return model.NewGormUserStore(db), db
 }
 
-func testAuditLog(t *testing.T) *telemetry.AuditLog {
+func testAuditLog(t *testing.T) *audit.AuditLog {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "audit.log")
-	al, err := telemetry.NewAuditLog(path)
-	if err != nil {
-		t.Fatalf("NewAuditLog: %v", err)
-	}
+	al := audit.NewAuditLog(path, 50, 5)
 	t.Cleanup(func() { al.Close() })
 	return al
 }

@@ -15,7 +15,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 	"golang.org/x/oauth2"
 )
 
@@ -33,7 +33,7 @@ type Auth struct {
 	sessions     map[string]session
 	mu           sync.RWMutex
 	userStore    model.UserStore
-	auditLog     *telemetry.AuditLog
+	auditLog     *audit.AuditLog
 }
 
 type session struct {
@@ -41,7 +41,7 @@ type session struct {
 	expiry   time.Time
 }
 
-func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string, userStore model.UserStore, auditLog *telemetry.AuditLog) (*Auth, error) {
+func NewAuth(ctx context.Context, issuerURL, internalURL, clientID, clientSecret, redirectURL string, userStore model.UserStore, auditLog *audit.AuditLog) (*Auth, error) {
 	oidcCtx := ctx
 	if internalURL != "" {
 		oidcCtx = oidc.InsecureIssuerURLContext(ctx, issuerURL)

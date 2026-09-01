@@ -10,6 +10,9 @@ e2e/web/node_modules/
 e2e/web/test-results/
 e2e/web/playwright-report/
 e2e/web/.nyc_output/
+/tostada
+e2e/web/coverage/
+web/test-results/
 charts/tostada/charts/
 charts/tostada/Chart.lock
 charts/tostada/values-local.yaml

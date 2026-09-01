@@ -1,12 +1,14 @@
-package telemetry
+package audit
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 	"time"
+
+	"gopkg.in/lumberjack.v2"
 )
 
 type accessEntry struct {
@@ -21,23 +23,24 @@ type accessEntry struct {
 }
 
 type AccessLogger struct {
-	f  *os.File
+	w  io.WriteCloser
 	mu sync.Mutex
 }
 
-func NewAccessLogger(path string) (*AccessLogger, error) {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
+func NewAccessLogger(path string, maxSizeMB, maxBackups int) *AccessLogger {
+	return &AccessLogger{
+		w: &lumberjack.Logger{
+			Filename:   path,
+			MaxSize:    maxSizeMB,
+			MaxBackups: maxBackups,
+		},
 	}
-	return &AccessLogger{f: f}, nil
 }
 
 // UserFunc extracts the authenticated username from a request.
 type UserFunc func(r *http.Request) string
 
 // Middleware returns an HTTP middleware that logs each request as a JSONL line.
-// userFn extracts the authenticated username (empty string if unauthenticated).
 func (a *AccessLogger) Middleware(next http.Handler, userFn UserFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -66,12 +69,12 @@ func (a *AccessLogger) Middleware(next http.Handler, userFn UserFunc) http.Handl
 		data = append(data, '\n')
 		a.mu.Lock()
 		defer a.mu.Unlock()
-		a.f.Write(data)
+		a.w.Write(data)
 	})
 }
 
 func (a *AccessLogger) Close() error {
-	return a.f.Close()
+	return a.w.Close()
 }
 
 type statusWriter struct {

@@ -1,4 +1,4 @@
-package telemetry
+package audit
 
 import (
 	"bytes"
@@ -12,10 +12,7 @@ func TestAuditLog_Log(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audit.log")
 
-	al, err := NewAuditLog(path)
-	if err != nil {
-		t.Fatalf("NewAuditLog: %v", err)
-	}
+	al := NewAuditLog(path, 50, 5)
 	defer al.Close()
 
 	al.Log("session.spawn", "alice", "", map[string]string{"workspace": "jupyter", "server": "jupyter-alice"})
@@ -64,10 +61,7 @@ func TestAuditLog_NilDetail(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audit.log")
 
-	al, err := NewAuditLog(path)
-	if err != nil {
-		t.Fatalf("NewAuditLog: %v", err)
-	}
+	al := NewAuditLog(path, 50, 5)
 	defer al.Close()
 
 	al.Log("auth.logout", "alice", "", nil)
@@ -90,11 +84,11 @@ func TestAuditLog_AppendsToExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audit.log")
 
-	al1, _ := NewAuditLog(path)
+	al1 := NewAuditLog(path, 50, 5)
 	al1.Log("auth.login", "alice", "", nil)
 	al1.Close()
 
-	al2, _ := NewAuditLog(path)
+	al2 := NewAuditLog(path, 50, 5)
 	al2.Log("auth.login", "bob", "", nil)
 	al2.Close()
 

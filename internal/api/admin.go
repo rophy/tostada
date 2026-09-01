@@ -9,7 +9,7 @@ import (
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 )
 
 func AdminMiddleware(store model.UserStore) func(http.Handler) http.Handler {
@@ -32,7 +32,7 @@ type adminHandler struct {
 	userStore   model.UserStore
 	deviceStore device.AdminStore
 	hubClient   *hub.Client
-	auditLog    *telemetry.AuditLog
+	auditLog    *audit.AuditLog
 }
 
 func (h *adminHandler) listUsers(w http.ResponseWriter, r *http.Request) {

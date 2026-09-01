@@ -10,10 +10,10 @@ import (
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 )
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *telemetry.AuditLog, accessLogger *telemetry.AccessLogger) *http.ServeMux {
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())

@@ -16,7 +16,7 @@ import (
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 	"github.com/rophy/tostada/web"
 )
 
@@ -45,21 +45,23 @@ func main() {
 	}
 	userStore := model.NewGormUserStore(deviceStore.DB())
 
-	logDir := cfg.Telemetry.LogDir
+	logDir := cfg.AuditLog.LogDir
 	if logDir == "" {
 		logDir = "/data/logs"
 	}
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		log.Fatalf("Failed to create log dir: %v", err)
 	}
-	auditLog, err := telemetry.NewAuditLog(filepath.Join(logDir, "audit.jsonl"))
-	if err != nil {
-		log.Fatalf("Failed to initialize audit log: %v", err)
+	maxSizeMB := cfg.AuditLog.MaxSizeMB
+	if maxSizeMB == 0 {
+		maxSizeMB = 50
 	}
-	accessLogger, err := telemetry.NewAccessLogger(filepath.Join(logDir, "access.jsonl"))
-	if err != nil {
-		log.Fatalf("Failed to initialize access logger: %v", err)
+	maxBackups := cfg.AuditLog.MaxBackups
+	if maxBackups == 0 {
+		maxBackups = 5
 	}
+	auditLog := audit.NewAuditLog(filepath.Join(logDir, "audit.jsonl"), maxSizeMB, maxBackups)
+	accessLogger := audit.NewAccessLogger(filepath.Join(logDir, "access.jsonl"), maxSizeMB, maxBackups)
 
 	// Retry OIDC discovery — sidecar proxy may not be ready yet
 	var authProvider *auth.Auth

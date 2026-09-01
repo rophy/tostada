@@ -9,17 +9,14 @@ import (
 	"testing"
 
 	"github.com/rophy/tostada/internal/auth"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 )
 
 func TestAccessLogMiddleware_WritesJSONL(t *testing.T) {
 	dir := t.TempDir()
 	accessPath := filepath.Join(dir, "access.log")
 
-	al, err := telemetry.NewAccessLogger(accessPath)
-	if err != nil {
-		t.Fatalf("NewAccessLogger: %v", err)
-	}
+	al := audit.NewAccessLogger(accessPath, 50, 5)
 	defer al.Close()
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

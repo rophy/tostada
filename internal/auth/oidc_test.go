@@ -15,7 +15,7 @@ import (
 
 	josejwt "github.com/go-jose/go-jose/v4"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 	"golang.org/x/oauth2"
 )
 
@@ -513,10 +513,7 @@ func TestCallbackHandler_Success(t *testing.T) {
 	defer oidcSrv.Close()
 
 	logPath := filepath.Join(t.TempDir(), "audit.jsonl")
-	auditLog, err := telemetry.NewAuditLog(logPath)
-	if err != nil {
-		t.Fatalf("NewAuditLog: %v", err)
-	}
+	auditLog := audit.NewAuditLog(logPath, 50, 5)
 	defer auditLog.Close()
 
 	userStore := &fakeUserStore{}
@@ -563,10 +560,7 @@ func TestCallbackHandler_Success(t *testing.T) {
 
 func TestLogoutHandler_WithAuditLog(t *testing.T) {
 	logPath := filepath.Join(t.TempDir(), "audit.jsonl")
-	auditLog, err := telemetry.NewAuditLog(logPath)
-	if err != nil {
-		t.Fatalf("NewAuditLog: %v", err)
-	}
+	auditLog := audit.NewAuditLog(logPath, 50, 5)
 	defer auditLog.Close()
 
 	a := &Auth{

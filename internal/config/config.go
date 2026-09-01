@@ -13,12 +13,14 @@ type Config struct {
 	JupyterHub JupyterHubConfig `yaml:"jupyterhub"`
 	Guacamole  GuacamoleConfig  `yaml:"guacamole"`
 	Database   DatabaseConfig   `yaml:"database"`
-	Telemetry  TelemetryConfig  `yaml:"telemetry"`
+	AuditLog   AuditLogConfig   `yaml:"auditLog"`
 	Workspaces []Workspace      `yaml:"workspaces"`
 }
 
-type TelemetryConfig struct {
-	LogDir string `yaml:"logDir"`
+type AuditLogConfig struct {
+	LogDir     string `yaml:"logDir"`
+	MaxSizeMB  int    `yaml:"maxSizeMB"`
+	MaxBackups int    `yaml:"maxBackups"`
 }
 
 type DatabaseConfig struct {

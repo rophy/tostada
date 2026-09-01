@@ -10,13 +10,13 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/guacamole"
-	"github.com/rophy/tostada/internal/telemetry"
+	"github.com/rophy/tostada/internal/audit"
 )
 
 type devicesHandler struct {
 	store    device.Store
 	guacCfg  config.GuacamoleConfig
-	auditLog *telemetry.AuditLog
+	auditLog *audit.AuditLog
 }
 
 func (h *devicesHandler) list(w http.ResponseWriter, r *http.Request) {

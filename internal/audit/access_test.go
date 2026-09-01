@@ -1,4 +1,4 @@
-package telemetry
+package audit
 
 import (
 	"context"
@@ -18,10 +18,7 @@ func TestAccessLogger_Middleware(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "access.log")
 
-	al, err := NewAccessLogger(path)
-	if err != nil {
-		t.Fatalf("NewAccessLogger: %v", err)
-	}
+	al := NewAccessLogger(path, 50, 5)
 	defer al.Close()
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,10 +79,7 @@ func TestAccessLogger_UnauthenticatedRequest(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "access.log")
 
-	al, err := NewAccessLogger(path)
-	if err != nil {
-		t.Fatalf("NewAccessLogger: %v", err)
-	}
+	al := NewAccessLogger(path, 50, 5)
 	defer al.Close()
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
