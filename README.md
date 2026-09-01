@@ -10,29 +10,35 @@ Tostada uses **JupyterHub** as its orchestration layer — handling authenticati
 |---|---|
 | Jupyter Notebook | Native JupyterHub proxy |
 | KasmVNC Desktop | JupyterHub proxies WebSocket directly (KasmVNC's own web client) |
-| xrdp Desktop | guacd translates RDP → WebSocket via guacamole-common-js |
-| VNC Desktop | guacd translates VNC → WebSocket via guacamole-common-js |
-| SSH Terminal | guacd or xterm.js |
+| External RDP/VNC Devices | guacd translates RDP/VNC → WebSocket via guacamole-common-js |
 
 ## Architecture
 
 ```mermaid
 graph TD
-    Portal["Tostada Portal<br/><i>custom UI + guacamole-common-js</i>"]
-    Hub["JupyterHub + KubeSpawner<br/><i>auth · spawning · proxy routing</i>"]
-    Jupyter["Jupyter Pod"]
-    Kasm["KasmVNC Pod<br/>:6901"]
-    Xrdp["xrdp Pod<br/>:3389"]
-    VNC["VNC Pod<br/>:5900"]
+    UI["Web UI"]
+    API["Tostada API"]
+    Hub["JupyterHub"]
     Guacd["guacd<br/><i>protocol gateway</i>"]
 
-    Portal --> Hub
-    Hub --> Jupyter
-    Hub --> Kasm
-    Hub --> Xrdp
-    Hub --> VNC
-    Xrdp --> Guacd
-    VNC --> Guacd
+    subgraph Spawned["Spawned Workspaces"]
+        Jupyter["Jupyter Pod"]
+        Kasm["KasmVNC Pod<br/>:6901"]
+    end
+
+    subgraph External["External Devices"]
+        ExtRDP["RDP Machine<br/>:3389"]
+        ExtVNC["VNC Machine<br/>:5900"]
+    end
+
+    UI --> API
+    API --> Hub
+    API --> Guacd
+    Hub -->|"WebSocket"| Jupyter
+    Hub -->|"WebSocket"| Kasm
+
+    Guacd -->|"RDP"| ExtRDP
+    Guacd -->|"VNC"| ExtVNC
 ```
 
 ## Key Design Decisions
@@ -40,8 +46,7 @@ graph TD
 - **JupyterHub is the control plane**, not Guacamole. Guacamole has no spawner — it only connects to existing machines. KubeSpawner fills that gap.
 - **guacd is a protocol gateway only.** We use `guacamole-common-js` to embed the remote desktop client in our own UI — no default Guacamole webapp needed.
 - **KasmVNC bypasses guacd entirely.** KasmVNC removed raw VNC (RFB) protocol support and speaks only WebSocket via its own web client.
-- **Stock KubeSpawner, no custom SpawnerClass.** Override `singleuser.cmd` per workspace type and use pre-spawn hooks for env injection.
-- **Per-user URL prefix handling** (`/user/<name>/`) is required for every workspace type behind JupyterHub's proxy.
+
 
 ## Components
 
@@ -49,7 +54,6 @@ graph TD
 - **guacd** — Apache Guacamole's protocol proxy daemon (RDP/VNC → WebSocket)
 - **guacamole-common-js** — JavaScript SDK for embedding Guacamole sessions in custom pages
 - **KasmVNC** — containerized Linux desktops with a native web client
-- **xrdp** — RDP server for full desktop environments, accessed via guacd
 
 ## Deployment
 
