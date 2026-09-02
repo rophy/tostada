@@ -28,13 +28,13 @@ spec:
           {{- end }}
           readinessProbe:
             httpGet:
-              path: /api/auth/login
+              path: /readyz
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/auth/login
+              path: /healthz
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 30

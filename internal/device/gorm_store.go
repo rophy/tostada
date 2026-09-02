@@ -40,6 +40,14 @@ func (s *GormStore) DB() *gorm.DB {
 	return s.db
 }
 
+func (s *GormStore) HealthCheck(_ context.Context) error {
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Ping()
+}
+
 func (s *GormStore) ListDevices(_ context.Context, username string) ([]Device, error) {
 	var devices []Device
 	err := s.db.

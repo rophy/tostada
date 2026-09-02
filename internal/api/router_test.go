@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +13,14 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/hub"
 )
+
+type mockHealthChecker struct {
+	err error
+}
+
+func (m *mockHealthChecker) HealthCheck(_ context.Context) error {
+	return m.err
+}
 
 func testConfig() *config.Config {
 	return &config.Config{
@@ -49,7 +59,7 @@ func TestNewRouter(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key")
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{})
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -62,10 +72,61 @@ func TestNewRouter_WithOIDCProxy(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key")
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{})
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
+}
+
+func TestHealthz(t *testing.T) {
+	cfg := testConfig()
+	hubClient := hub.NewClient("http://hub:8081", "test-token")
+	authProvider := &auth.Auth{}
+	store := testDeviceStore(t)
+	hc := &mockHealthChecker{}
+
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+
+	req := httptest.NewRequest("GET", "/healthz", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("Status = %d, want 200", rec.Code)
+	}
+}
+
+func TestReadyz(t *testing.T) {
+	cfg := testConfig()
+	hubClient := hub.NewClient("http://hub:8081", "test-token")
+	authProvider := &auth.Auth{}
+	store := testDeviceStore(t)
+
+	t.Run("healthy", func(t *testing.T) {
+		hc := &mockHealthChecker{}
+		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+
+		req := httptest.NewRequest("GET", "/readyz", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("Status = %d, want 200", rec.Code)
+		}
+	})
+
+	t.Run("unhealthy", func(t *testing.T) {
+		hc := &mockHealthChecker{err: errors.New("db connection lost")}
+		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+
+		req := httptest.NewRequest("GET", "/readyz", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Errorf("Status = %d, want 503", rec.Code)
+		}
+	})
 }
 
 func TestListWorkspaces(t *testing.T) {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,8 +15,26 @@ import (
 	"github.com/rophy/tostada/internal/audit"
 )
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger, guacSecretKey string) *http.ServeMux {
+// HealthChecker provides a method to verify backend health.
+type HealthChecker interface {
+	HealthCheck(ctx context.Context) error
+}
+
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger, guacSecretKey string, healthChecker HealthChecker) *http.ServeMux {
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		if err := healthChecker.HealthCheck(r.Context()); err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())
 	mux.HandleFunc("GET /api/auth/callback", authProvider.CallbackHandler())

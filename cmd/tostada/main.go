@@ -101,7 +101,7 @@ func main() {
 
 	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, hubAPIToken)
 
-	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger, guacJSONSecretKey)
+	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger, guacJSONSecretKey, deviceStore)
 
 	if registerCoverageHandler != nil {
 		registerCoverageHandler(mux)
