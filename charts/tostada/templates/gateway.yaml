@@ -70,7 +70,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:alpine
+          image: {{ .Values.gateway.image }}
           ports:
             - containerPort: 8080
           {{- with .Values.gateway.resources }}
@@ -102,10 +102,12 @@ kind: Service
 metadata:
   name: gateway
 spec:
-  type: NodePort
+  type: {{ .Values.gateway.service.type }}
   selector:
     app: gateway
   ports:
     - port: 8080
       targetPort: 8080
-      nodePort: 30080
+      {{- if and (eq .Values.gateway.service.type "NodePort") .Values.gateway.service.nodePort }}
+      nodePort: {{ .Values.gateway.service.nodePort }}
+      {{- end }}

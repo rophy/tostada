@@ -21,6 +21,10 @@ oidc:
   internalURL: "http://oidc-mock:8080"
 
 gateway:
+  image: nginx:1.27-alpine
+  service:
+    type: NodePort
+    nodePort: 30080
   resources:
     requests:
       cpu: 10m
