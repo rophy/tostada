@@ -102,8 +102,8 @@ Default location: `/data/logs/`. Configurable via:
 ```yaml
 auditLog:
   logDir: /data/logs
-  maxSizeMB: 50    # max size per file before rotation (default: 50)
-  maxBackups: 5    # number of rotated files to keep (default: 5)
+  maxSizeMB: 5     # max size per file before rotation (default: 5)
+  maxBackups: 3    # number of rotated files to keep (default: 3)
 ```
 
 ### Audit events

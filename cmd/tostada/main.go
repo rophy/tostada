@@ -54,11 +54,11 @@ func main() {
 	}
 	maxSizeMB := cfg.AuditLog.MaxSizeMB
 	if maxSizeMB == 0 {
-		maxSizeMB = 50
+		maxSizeMB = 5
 	}
 	maxBackups := cfg.AuditLog.MaxBackups
 	if maxBackups == 0 {
-		maxBackups = 5
+		maxBackups = 3
 	}
 	auditLog := audit.NewAuditLog(filepath.Join(logDir, "audit.jsonl"), maxSizeMB, maxBackups)
 	accessLogger := audit.NewAccessLogger(filepath.Join(logDir, "access.jsonl"), maxSizeMB, maxBackups)
