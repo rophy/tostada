@@ -35,7 +35,10 @@ spec:
       containers:
         - name: oidc-mock
           image: {{ .Values.oidcMock.image }}
-          args: ["-config", "/config/config.yaml"]
+          command: ["/oidc-mock", "serve"]
+          env:
+            - name: OIDC_CONFIG_FILE
+              value: "/config/config.yaml"
           ports:
             - containerPort: 8080
           volumeMounts:

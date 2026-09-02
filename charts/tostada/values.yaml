@@ -23,7 +23,7 @@ database:
 
 oidcMock:
   enabled: true
-  image: ghcr.io/rophy/oidc-mock:latest
+  image: ghcr.io/rophy/oidc-mock:20260902-970dd92
   nodePort: 30081
   issuer: "http://localhost:30081"
   redirectURIs:
