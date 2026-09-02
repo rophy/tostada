@@ -76,11 +76,6 @@ export async function fetchDevices(): Promise<Device[]> {
   return res.json()
 }
 
-export async function getDeviceConnectInfo(name: string): Promise<{ token: string; connectionId: string }> {
-  const res = await fetch(`/api/devices/${name}/connect`)
-  return res.json()
-}
-
 // Admin API
 
 export interface AdminUser {

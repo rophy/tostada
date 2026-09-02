@@ -105,9 +105,54 @@ body { background: #000; overflow: hidden; font-family: sans-serif; }
 <script src="/guacamole-common-js/all.min.js"></script>
 <script>
 var params = new URLSearchParams(window.location.search);
-var token = params.get("token");
 var connId = params.get("id");
 var guac;
+
+function getStorageKey(id) {
+  return "guac-token:" + id;
+}
+
+function getCachedToken(id) {
+  try {
+    var raw = localStorage.getItem(getStorageKey(id));
+    if (!raw) return null;
+    var entry = JSON.parse(raw);
+    if (entry.expires && Date.now() > entry.expires) {
+      localStorage.removeItem(getStorageKey(id));
+      return null;
+    }
+    return entry.token;
+  } catch(e) {
+    return null;
+  }
+}
+
+function cacheToken(id, token, ttlMs) {
+  try {
+    localStorage.setItem(getStorageKey(id), JSON.stringify({
+      token: token,
+      expires: Date.now() + (ttlMs || 4 * 60 * 1000)
+    }));
+  } catch(e) {}
+}
+
+function clearCachedToken(id) {
+  try { localStorage.removeItem(getStorageKey(id)); } catch(e) {}
+}
+
+async function fetchToken(id) {
+  var cached = getCachedToken(id);
+  if (cached) return cached;
+
+  log("Fetching connection token...");
+  var res = await fetch("/api/devices/" + encodeURIComponent(id) + "/connect");
+  if (!res.ok) {
+    throw new Error("Failed to get token: " + res.status);
+  }
+  var data = await res.json();
+  cacheToken(id, data.token);
+  return data.token;
+}
 
 function log(msg, type) {
   var logEl = document.getElementById("log");
@@ -210,13 +255,27 @@ function setActions(actions) {
   });
 }
 
-if (!token || !connId) {
-  log("Missing token or connection ID", "error");
+if (!connId) {
+  log("Missing connection ID", "error");
   setTitle("Connection Failed");
 } else {
   document.getElementById("conn-name").textContent = connId;
   log("Device: " + connId);
-  startConnection(token, connId);
+  initConnection(connId);
+}
+
+async function initConnection(id) {
+  try {
+    var token = await fetchToken(id);
+    startConnection(token, id);
+  } catch(e) {
+    log("" + e, "error");
+    setTitle("Connection Failed");
+    setActions([
+      { label: "Retry", primary: true, action: function() { clearCachedToken(id); initConnection(id); } },
+      { label: "Close", action: function() { window.close(); } },
+    ]);
+  }
 }
 
 function startConnection(token, connId) {
@@ -366,10 +425,12 @@ function reconnect() {
   log("---");
   log("Reconnecting...");
   setTitle("Connecting...");
-  startConnection(token, connId);
+  clearCachedToken(connId);
+  initConnection(connId);
 }
 
 function disconnect() {
+  clearCachedToken(connId);
   if (guac) guac.disconnect();
   window.close();
 }

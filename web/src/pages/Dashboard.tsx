@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom'
 import {
   Workspace, Server, Device, CurrentUser,
   fetchWorkspaces, fetchSessions, fetchCurrentUser, fetchDevices,
-  launchWorkspace, stopSession, getConnectURL, getDeviceConnectInfo, logout,
+  launchWorkspace, stopSession, getConnectURL, logout,
 } from '../api'
 import { WorkspaceCard } from '../components/WorkspaceCard'
 import { SessionList } from '../components/SessionList'
@@ -98,10 +98,8 @@ export function Dashboard() {
         <Button
           type="link"
           icon={<LinkOutlined />}
-          onClick={async () => {
-            const info = await getDeviceConnectInfo(d.name)
-            const params = new URLSearchParams({ token: info.token, id: info.connectionId })
-            window.open(`/connect.html?${params}`, '_blank')
+          onClick={() => {
+            window.open(`/connect.html?id=${encodeURIComponent(d.name)}`, '_blank')
           }}
         >
           Connect
