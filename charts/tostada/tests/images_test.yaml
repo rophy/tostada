@@ -1,0 +1,114 @@
+suite: image rendering
+templates:
+  - tostada-deployment.yaml
+  - tostada-configmap.yaml
+  - gateway.yaml
+  - guacamole.yaml
+  - oidc-mock.yaml
+tests:
+  - it: renders tostada image with no registry
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "tostada:latest"
+        documentIndex: 0
+
+  - it: renders gateway image with no registry
+    template: gateway.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "nginx:alpine"
+        documentIndex: 1
+
+  - it: renders guacd image with ghcr.io registry
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/rophy/guacd:1.6.0-20260831-2"
+        documentIndex: 0
+
+  - it: renders guacamole web image with no registry
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].image
+          value: "guacamole/guacamole:1.6.0"
+        documentIndex: 0
+
+  - it: renders oidc-mock image with ghcr.io registry
+    template: oidc-mock.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/rophy/oidc-mock:20260902-970dd92"
+        documentIndex: 1
+
+  - it: applies global.imageRegistry to all images
+    set:
+      global.imageRegistry: corp.example.com
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "corp.example.com/tostada:latest"
+        documentIndex: 0
+
+  - it: applies global.imageRegistry to gateway
+    set:
+      global.imageRegistry: corp.example.com
+    template: gateway.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "corp.example.com/nginx:alpine"
+        documentIndex: 1
+
+  - it: applies global.imageRegistry to guacamole
+    set:
+      global.imageRegistry: corp.example.com
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "corp.example.com/rophy/guacd:1.6.0-20260831-2"
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[1].image
+          value: "corp.example.com/guacamole/guacamole:1.6.0"
+        documentIndex: 0
+
+  - it: applies global.imageRegistry to oidc-mock
+    set:
+      global.imageRegistry: corp.example.com
+    template: oidc-mock.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "corp.example.com/rophy/oidc-mock:20260902-970dd92"
+        documentIndex: 1
+
+  - it: per-image override takes precedence when no global
+    set:
+      tostada.image.registry: my-registry.io
+      tostada.image.repository: custom/tostada
+      tostada.image.tag: v2.0.0
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-registry.io/custom/tostada:v2.0.0"
+        documentIndex: 0
+
+  - it: global.imageRegistry overrides per-image registry
+    set:
+      global.imageRegistry: corp.example.com
+      tostada.image.registry: my-registry.io
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "corp.example.com/tostada:latest"
+        documentIndex: 0

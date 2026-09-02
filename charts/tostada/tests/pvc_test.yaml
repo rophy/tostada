@@ -1,0 +1,27 @@
+suite: tostada PVC
+templates:
+  - tostada-pvc.yaml
+tests:
+  - it: defaults to 64Mi with no storageClass
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 64Mi
+      - isNull:
+          path: spec.storageClassName
+
+  - it: allows custom size
+    set:
+      tostada.persistence.size: 1Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 1Gi
+
+  - it: allows setting storageClass
+    set:
+      tostada.persistence.storageClass: standard
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: "standard"

@@ -1,0 +1,35 @@
+suite: gateway service
+templates:
+  - gateway.yaml
+tests:
+  - it: defaults to NodePort with port 30080
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+        documentIndex: 2
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30080
+        documentIndex: 2
+
+  - it: supports ClusterIP without nodePort
+    set:
+      gateway.service.type: ClusterIP
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+        documentIndex: 2
+      - isNull:
+          path: spec.ports[0].nodePort
+        documentIndex: 2
+
+  - it: allows custom nodePort
+    set:
+      gateway.service.nodePort: 31080
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 31080
+        documentIndex: 2

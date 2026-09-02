@@ -1,0 +1,59 @@
+suite: health probes
+templates:
+  - tostada-deployment.yaml
+  - tostada-configmap.yaml
+  - gateway.yaml
+  - guacamole.yaml
+  - oidc-mock.yaml
+tests:
+  - it: tostada uses /healthz and /readyz
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz
+        documentIndex: 0
+
+  - it: gateway probes on /
+    template: gateway.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /
+        documentIndex: 1
+
+  - it: guacd uses tcpSocket probes
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
+          value: 4822
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+          value: 4822
+        documentIndex: 0
+
+  - it: guacamole web probes on /
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].readinessProbe.httpGet.path
+          value: /
+        documentIndex: 0
+
+  - it: oidc-mock probes on /.well-known/openid-configuration
+    template: oidc-mock.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /.well-known/openid-configuration
+        documentIndex: 1

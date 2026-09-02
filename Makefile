@@ -33,6 +33,7 @@ unit-test: ## Run unit tests with coverage
 	go test ./... -v -coverprofile=coverage.out
 	@go tool cover -func=coverage.out | tail -1
 	cd web && npx vitest run --coverage
+	helm unittest charts/tostada
 
 e2e-test: ## Run e2e tests and collect server coverage (requires make up)
 	go test -tags e2e ./e2e/... -v -count=1
