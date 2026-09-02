@@ -14,12 +14,12 @@ tests:
           value: "tostada:latest"
         documentIndex: 0
 
-  - it: renders gateway image with no registry
+  - it: renders gateway image with ghcr.io registry
     template: gateway.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "nginx:alpine"
+          value: "ghcr.io/rophy/nginx:1.31.3-1"
         documentIndex: 1
 
   - it: renders guacd image with ghcr.io registry
@@ -63,7 +63,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "corp.example.com/nginx:alpine"
+          value: "corp.example.com/rophy/nginx:1.31.3-1"
         documentIndex: 1
 
   - it: applies global.imageRegistry to guacamole

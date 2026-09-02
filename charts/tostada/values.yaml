@@ -28,9 +28,9 @@ oidc:
 
 gateway:
   image:
-    registry: ""
-    repository: nginx
-    tag: alpine
+    registry: ghcr.io
+    repository: rophy/nginx
+    tag: 1.31.3-1
   service:
     type: NodePort
     nodePort: 30080
