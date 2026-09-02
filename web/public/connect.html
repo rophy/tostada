@@ -280,7 +280,7 @@ async function initConnection(id) {
 
 function startConnection(token, connId) {
   log("Initializing tunnel...");
-  var tunnelURL = location.origin + "/api/guacamole/tunnel";
+  var tunnelURL = location.origin + "/guacamole/tunnel";
   var tunnel = new Guacamole.HTTPTunnel(tunnelURL);
   guac = new Guacamole.Client(tunnel);
 

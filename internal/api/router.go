@@ -72,8 +72,6 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	}
 	mux.Handle("/api/", authedHandler)
 
-	registerGuacamoleProxy(mux, cfg.Guacamole)
-
 	if cfg.OIDC.InternalURL != "" {
 		target, _ := url.Parse(cfg.OIDC.InternalURL)
 		oidcProxy := &httputil.ReverseProxy{

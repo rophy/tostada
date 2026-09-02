@@ -662,34 +662,4 @@ func TestConnectTokenCreateFails(t *testing.T) {
 	}
 }
 
-func TestRegisterGuacamoleProxy(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Proxied", "true")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("proxied:" + r.URL.Path))
-	}))
-	defer backend.Close()
-
-	mux := http.NewServeMux()
-	registerGuacamoleProxy(mux, config.GuacamoleConfig{URL: backend.URL})
-
-	req := httptest.NewRequest("GET", "/api/guacamole/tunnel?read=abc", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("tunnel proxy: Status = %d, want 200", rec.Code)
-	}
-	if body := rec.Body.String(); !strings.Contains(body, "proxied:/tunnel") {
-		t.Errorf("tunnel proxy: body = %q, want 'proxied:/tunnel'", body)
-	}
-
-	req = httptest.NewRequest("GET", "/guacamole-common-js/all.min.js", nil)
-	rec = httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("static proxy: Status = %d, want 200", rec.Code)
-	}
-}
 
