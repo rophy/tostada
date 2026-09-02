@@ -14,7 +14,7 @@ up: ## Create cluster and deploy everything (localhost, no external domain)
 		echo "Generating tostada-secrets..."; \
 		kubectl --context $(KUBE_CTX) -n tostada create secret generic tostada-secrets \
 			--from-literal=oidc-client-secret=tostada-secret \
-			--from-literal=guacamole-json-secret-key=$$(openssl rand -hex 16) \
+			--from-literal=guacamole-json-secret-key=$$(openssl rand -hex 32) \
 			--from-literal=hub.services.tostada.apiToken=$$(openssl rand -hex 32); \
 	fi
 	skaffold run --kube-context $(KUBE_CTX)
