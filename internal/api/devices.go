@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/rophy/tostada/internal/auth"
-	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/guacamole"
 	"github.com/rophy/tostada/internal/audit"
 )
 
 type devicesHandler struct {
-	store    device.Store
-	guacCfg  config.GuacamoleConfig
-	auditLog *audit.AuditLog
+	store         device.Store
+	guacURL       string
+	guacSecretKey string
+	auditLog      *audit.AuditLog
 }
 
 func (h *devicesHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -65,13 +65,13 @@ func (h *devicesHandler) connect(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	token, err := guacamole.BuildToken(payload, h.guacCfg.JSONSecretKey)
+	token, err := guacamole.BuildToken(payload, h.guacSecretKey)
 	if err != nil {
 		http.Error(w, "token generation failed", http.StatusInternalServerError)
 		return
 	}
 
-	authToken, err := guacamole.ExchangeToken(h.guacCfg.URL, token)
+	authToken, err := guacamole.ExchangeToken(h.guacURL, token)
 	if err != nil {
 		http.Error(w, "token exchange failed", http.StatusInternalServerError)
 		return

@@ -13,15 +13,12 @@ data:
       internalURL: {{ .Values.oidc.internalURL | quote }}
       {{- end }}
       clientID: {{ .Values.oidc.clientID | quote }}
-      clientSecret: {{ .Values.oidc.clientSecret | quote }}
       redirectURL: "{{ $scheme }}://{{ .Values.domain }}/api/auth/callback"
     jupyterhub:
       apiURL: "http://hub:8081/hub/api"
-      apiToken: {{ .Values.jupyterhub.hub.services.tostada.api_token | quote }}
       proxyURL: "http://proxy-public:80"
     guacamole:
       url: {{ .Values.guacamole.url | quote }}
-      jsonSecretKey: {{ .Values.guacamole.jsonSecretKey | quote }}
     database:
       path: {{ .Values.database.path | quote }}
     workspaces:

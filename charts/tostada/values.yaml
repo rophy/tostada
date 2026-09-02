@@ -1,5 +1,7 @@
 domain: localhost:30080
 
+existingSecret: tostada-secrets
+
 tostada:
   image: tostada
   imagePullPolicy: IfNotPresent
@@ -11,7 +13,6 @@ oidc:
 
 guacamole:
   url: "http://guacamole:8080"
-  jsonSecretKey: "change-me-hex-key"
   guacd:
     image: ghcr.io/rophy/guacd:1.6.0-20260831-2
   web:
@@ -103,9 +104,9 @@ jupyterhub:
                 await super().add_route(routespec, target, data)
 
         c.JupyterHub.proxy_class = PrefixAwareProxy
+    existingSecret: tostada-secrets
     services:
-      tostada:
-        api_token: "changeme-tostada-api-token"
+      tostada: {}
     loadRoles:
       tostada-service:
         scopes:

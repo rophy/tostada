@@ -63,6 +63,19 @@ func main() {
 	auditLog := audit.NewAuditLog(filepath.Join(logDir, "audit.jsonl"), maxSizeMB, maxBackups)
 	accessLogger := audit.NewAccessLogger(filepath.Join(logDir, "access.jsonl"), maxSizeMB, maxBackups)
 
+	oidcClientSecret := os.Getenv("OIDC_CLIENT_SECRET")
+	if oidcClientSecret == "" {
+		log.Fatal("OIDC_CLIENT_SECRET environment variable is required")
+	}
+	guacJSONSecretKey := os.Getenv("GUACAMOLE_JSON_SECRET_KEY")
+	if guacJSONSecretKey == "" {
+		log.Fatal("GUACAMOLE_JSON_SECRET_KEY environment variable is required")
+	}
+	hubAPIToken := os.Getenv("JUPYTERHUB_API_TOKEN")
+	if hubAPIToken == "" {
+		log.Fatal("JUPYTERHUB_API_TOKEN environment variable is required")
+	}
+
 	// Retry OIDC discovery — sidecar proxy may not be ready yet
 	var authProvider *auth.Auth
 	for i := 0; i < 30; i++ {
@@ -71,7 +84,7 @@ func main() {
 			cfg.OIDC.IssuerURL,
 			cfg.OIDC.InternalURL,
 			cfg.OIDC.ClientID,
-			cfg.OIDC.ClientSecret,
+			oidcClientSecret,
 			cfg.OIDC.RedirectURL,
 			userStore,
 			auditLog,
@@ -86,9 +99,9 @@ func main() {
 		log.Fatalf("Failed to initialize auth after retries: %v", err)
 	}
 
-	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, cfg.JupyterHub.APIToken)
+	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, hubAPIToken)
 
-	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger)
+	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger, guacJSONSecretKey)
 
 	if registerCoverageHandler != nil {
 		registerCoverageHandler(mux)

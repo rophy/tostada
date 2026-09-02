@@ -13,7 +13,7 @@ import (
 	"github.com/rophy/tostada/internal/audit"
 )
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger) *http.ServeMux {
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger, guacSecretKey string) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/auth/login", authProvider.LoginHandler())
@@ -21,10 +21,11 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	mux.HandleFunc("POST /api/auth/logout", authProvider.LogoutHandler())
 
 	sessions := &sessionsHandler{
-		hubClient:  hubClient,
-		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
-		auditLog:   auditLog,
+		hubClient:     hubClient,
+		workspaces:    cfg.Workspaces,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: guacSecretKey,
+		auditLog:      auditLog,
 	}
 
 	authed := http.NewServeMux()
@@ -36,9 +37,10 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	authed.HandleFunc("GET /api/sessions/{name}/connect", sessions.connect)
 
 	devices := &devicesHandler{
-		store:    deviceStore,
-		guacCfg:  cfg.Guacamole,
-		auditLog: auditLog,
+		store:         deviceStore,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: guacSecretKey,
+		auditLog:      auditLog,
 	}
 	authed.HandleFunc("GET /api/devices", devices.list)
 	authed.HandleFunc("GET /api/devices/{name}/connect", devices.connect)

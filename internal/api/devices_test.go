@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/rophy/tostada/internal/auth"
-	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 )
 
@@ -106,11 +105,9 @@ func TestDevicesConnect(t *testing.T) {
 	seedTestDevice(t, store)
 
 	h := &devicesHandler{
-		store: store,
-		guacCfg: config.GuacamoleConfig{
-			URL:           guacSrv.URL,
-			JSONSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
-		},
+		store:         store,
+		guacURL:       guacSrv.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/devices/test-rdp/connect", nil)

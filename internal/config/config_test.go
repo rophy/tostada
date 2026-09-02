@@ -13,14 +13,11 @@ server:
 oidc:
   issuerURL: "https://auth.example.com"
   clientID: "test-client"
-  clientSecret: "test-secret"
   redirectURL: "http://localhost:9090/api/auth/callback"
 jupyterhub:
   apiURL: "http://hub:8081/hub/api"
-  apiToken: "test-token"
 guacamole:
   url: "http://guacamole:8080"
-  jsonSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41"
 workspaces:
   - name: jupyter
     displayName: Jupyter Notebook
@@ -61,8 +58,8 @@ workspaces:
 	if cfg.JupyterHub.APIURL != "http://hub:8081/hub/api" {
 		t.Errorf("JupyterHub.APIURL = %q, want %q", cfg.JupyterHub.APIURL, "http://hub:8081/hub/api")
 	}
-	if cfg.Guacamole.JSONSecretKey != "4c0b569e4c96df157eee1b65dd0e4d41" {
-		t.Errorf("Guacamole.JSONSecretKey = %q", cfg.Guacamole.JSONSecretKey)
+	if cfg.Guacamole.URL != "http://guacamole:8080" {
+		t.Errorf("Guacamole.URL = %q, want %q", cfg.Guacamole.URL, "http://guacamole:8080")
 	}
 	if len(cfg.Workspaces) != 2 {
 		t.Fatalf("len(Workspaces) = %d, want 2", len(cfg.Workspaces))

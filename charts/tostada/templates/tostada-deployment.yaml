@@ -22,6 +22,22 @@ spec:
           imagePullPolicy: {{ .Values.tostada.imagePullPolicy }}
           ports:
             - containerPort: 8080
+          env:
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: oidc-client-secret
+            - name: GUACAMOLE_JSON_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: guacamole-json-secret-key
+            - name: JUPYTERHUB_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: hub.services.tostada.apiToken
           volumeMounts:
             - name: config
               mountPath: /etc/tostada

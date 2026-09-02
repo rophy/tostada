@@ -15,12 +15,10 @@ import (
 func testConfig() *config.Config {
 	return &config.Config{
 		Guacamole: config.GuacamoleConfig{
-			URL:           "http://guacamole:8080",
-			JSONSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
+			URL: "http://guacamole:8080",
 		},
 		JupyterHub: config.JupyterHubConfig{
-			APIURL:   "http://hub:8081/hub/api",
-			APIToken: "test-token",
+			APIURL: "http://hub:8081/hub/api",
 		},
 		Workspaces: []config.Workspace{
 			{
@@ -51,7 +49,7 @@ func TestNewRouter(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil)
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key")
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -64,7 +62,7 @@ func TestNewRouter_WithOIDCProxy(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil)
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key")
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -167,7 +165,8 @@ func TestConnectKasmVNC(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hubClient,
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/my-kasm/connect", nil)
@@ -231,7 +230,8 @@ func TestConnectJupyter(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hubClient,
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/my-jupyter/connect", nil)
@@ -276,7 +276,8 @@ func TestConnectServerNotFound(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hubClient,
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/missing/connect", nil)
@@ -475,7 +476,8 @@ func TestConnectServerNotReady(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/my-nb/connect", nil)
@@ -593,7 +595,8 @@ func TestConnectGuacamoleType(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/my-rdp/connect", nil)
@@ -643,7 +646,8 @@ func TestConnectTokenCreateFails(t *testing.T) {
 	h := &sessionsHandler{
 		hubClient:  hub.NewClient(hubSrv.URL, "test-token"),
 		workspaces: cfg.Workspaces,
-		guacCfg:    cfg.Guacamole,
+		guacURL:       cfg.Guacamole.URL,
+		guacSecretKey: "4c0b569e4c96df157eee1b65dd0e4d41",
 	}
 
 	req := httptest.NewRequest("GET", "/api/sessions/nb/connect", nil)

@@ -17,10 +17,11 @@ import (
 )
 
 type sessionsHandler struct {
-	hubClient  *hub.Client
-	workspaces []config.Workspace
-	guacCfg    config.GuacamoleConfig
-	auditLog   *audit.AuditLog
+	hubClient     *hub.Client
+	workspaces    []config.Workspace
+	guacURL       string
+	guacSecretKey string
+	auditLog      *audit.AuditLog
 }
 
 func profileSlug(displayName string) string {
@@ -156,12 +157,12 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		}
-		token, err := guacamole.BuildToken(payload, h.guacCfg.JSONSecretKey)
+		token, err := guacamole.BuildToken(payload, h.guacSecretKey)
 		if err != nil {
 			http.Error(w, "token generation failed", http.StatusInternalServerError)
 			return
 		}
-		connectURL = fmt.Sprintf("%s/#/client/%s?token=%s", h.guacCfg.URL, serverName, url.QueryEscape(token))
+		connectURL = fmt.Sprintf("%s/#/client/%s?token=%s", h.guacURL, serverName, url.QueryEscape(token))
 	} else {
 		token, err := h.hubClient.CreateUserToken(username)
 		if err != nil {

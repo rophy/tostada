@@ -27,7 +27,10 @@ spec:
             - name: GUACD_PORT
               value: "4822"
             - name: JSON_SECRET_KEY
-              value: {{ .Values.guacamole.jsonSecretKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: guacamole-json-secret-key
             - name: WEBAPP_CONTEXT
               value: "ROOT"
 ---

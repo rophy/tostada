@@ -32,22 +32,19 @@ type ServerConfig struct {
 }
 
 type OIDCConfig struct {
-	IssuerURL    string `yaml:"issuerURL"`
-	InternalURL  string `yaml:"internalURL"`
-	ClientID     string `yaml:"clientID"`
-	ClientSecret string `yaml:"clientSecret"`
-	RedirectURL  string `yaml:"redirectURL"`
+	IssuerURL   string `yaml:"issuerURL"`
+	InternalURL string `yaml:"internalURL"`
+	ClientID    string `yaml:"clientID"`
+	RedirectURL string `yaml:"redirectURL"`
 }
 
 type JupyterHubConfig struct {
 	APIURL   string `yaml:"apiURL"`
-	APIToken string `yaml:"apiToken"`
 	ProxyURL string `yaml:"proxyURL"`
 }
 
 type GuacamoleConfig struct {
-	URL           string `yaml:"url"`
-	JSONSecretKey string `yaml:"jsonSecretKey"`
+	URL string `yaml:"url"`
 }
 
 type Workspace struct {

@@ -10,6 +10,13 @@ help: ## Show this help
 up: ## Create cluster and deploy everything (localhost, no external domain)
 	kind create cluster --name $(CLUSTER_NAME) --config kind-config.yaml 2>/dev/null || true
 	kubectl --context $(KUBE_CTX) create namespace tostada 2>/dev/null || true
+	@if ! kubectl --context $(KUBE_CTX) -n tostada get secret tostada-secrets >/dev/null 2>&1; then \
+		echo "Generating tostada-secrets..."; \
+		kubectl --context $(KUBE_CTX) -n tostada create secret generic tostada-secrets \
+			--from-literal=oidc-client-secret=tostada-secret \
+			--from-literal=guacamole-json-secret-key=$$(openssl rand -hex 16) \
+			--from-literal=hub.services.tostada.apiToken=$$(openssl rand -hex 32); \
+	fi
 	skaffold run --kube-context $(KUBE_CTX)
 
 down: ## Tear down cluster
