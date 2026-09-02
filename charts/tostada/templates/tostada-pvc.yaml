@@ -5,6 +5,9 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  {{- if .Values.tostada.persistence.storageClass }}
+  storageClassName: {{ .Values.tostada.persistence.storageClass | quote }}
+  {{- end }}
   resources:
     requests:
-      storage: 64Mi
+      storage: {{ .Values.tostada.persistence.size }}

@@ -5,6 +5,9 @@ existingSecret: tostada-secrets
 tostada:
   image: tostada
   imagePullPolicy: IfNotPresent
+  persistence:
+    size: 64Mi
+    # storageClass: ""
   resources:
     requests:
       cpu: 10m
