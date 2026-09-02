@@ -73,6 +73,22 @@ spec:
           image: nginx:alpine
           ports:
             - containerPort: 8080
+          {{- with .Values.gateway.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
           volumeMounts:
             - name: config
               mountPath: /etc/nginx/conf.d

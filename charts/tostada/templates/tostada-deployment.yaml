@@ -22,6 +22,22 @@ spec:
           imagePullPolicy: {{ .Values.tostada.imagePullPolicy }}
           ports:
             - containerPort: 8080
+          {{- with .Values.tostada.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /api/auth/login
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/auth/login
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
           env:
             - name: OIDC_CLIENT_SECRET
               valueFrom:

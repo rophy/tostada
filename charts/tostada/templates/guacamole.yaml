@@ -17,10 +17,40 @@ spec:
           image: {{ .Values.guacamole.guacd.image }}
           ports:
             - containerPort: 4822
+          {{- with .Values.guacamole.guacd.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: 4822
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 4822
+            initialDelaySeconds: 2
+            periodSeconds: 10
         - name: guacamole
           image: {{ .Values.guacamole.web.image }}
           ports:
             - containerPort: 8080
+          {{- with .Values.guacamole.web.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
           env:
             - name: GUACD_HOSTNAME
               value: "localhost"

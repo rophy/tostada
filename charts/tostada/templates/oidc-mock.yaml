@@ -41,6 +41,22 @@ spec:
               value: "/config/config.yaml"
           ports:
             - containerPort: 8080
+          {{- with .Values.oidcMock.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /.well-known/openid-configuration
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /.well-known/openid-configuration
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
           volumeMounts:
             - name: config
               mountPath: /config
