@@ -63,8 +63,6 @@ workspaces:
     port: 6901
     cmd: ["/dockerstartup/kasm_default_profile.sh"]
 
-vncPassword: "password"
-
 jupyterhub:
   hub:
     networkPolicy:
@@ -131,7 +129,6 @@ jupyterhub:
           cmd: null
           port: 6901
           environment:
-            VNC_PW: "password"
             VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
       - display_name: "Chrome Browser"
         kubespawner_override:
@@ -139,7 +136,6 @@ jupyterhub:
           cmd: null
           port: 6901
           environment:
-            VNC_PW: "password"
             VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
             KASM_SVC_SEND_CUT_TEXT: "-SendCutText=0"
             KASM_SVC_ACCEPT_CUT_TEXT: "-AcceptCutText=0"
