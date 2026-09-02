@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
         - name: oidc-mock
-          image: {{ .Values.oidcMock.image }}
+          image: {{ include "tostada.image" (dict "image" .Values.oidcMock.image "global" .Values.global) }}
           command: ["/oidc-mock", "serve"]
           env:
             - name: OIDC_CONFIG_FILE

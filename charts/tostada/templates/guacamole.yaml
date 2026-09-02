@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: guacd
-          image: {{ .Values.guacamole.guacd.image }}
+          image: {{ include "tostada.image" (dict "image" .Values.guacamole.guacd.image "global" .Values.global) }}
           ports:
             - containerPort: 4822
           {{- with .Values.guacamole.guacd.resources }}
@@ -32,7 +32,7 @@ spec:
             initialDelaySeconds: 2
             periodSeconds: 10
         - name: guacamole
-          image: {{ .Values.guacamole.web.image }}
+          image: {{ include "tostada.image" (dict "image" .Values.guacamole.web.image "global" .Values.global) }}
           ports:
             - containerPort: 8080
           {{- with .Values.guacamole.web.resources }}

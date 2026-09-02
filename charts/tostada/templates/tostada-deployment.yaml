@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: tostada
-          image: {{ .Values.tostada.image }}
+          image: {{ include "tostada.image" (dict "image" .Values.tostada.image "global" .Values.global) }}
           imagePullPolicy: {{ .Values.tostada.imagePullPolicy }}
           ports:
             - containerPort: 8080

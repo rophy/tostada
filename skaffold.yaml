@@ -17,4 +17,6 @@ deploy:
         namespace: tostada
         createNamespace: true
         setValueTemplates:
-          tostada.image: "{{.IMAGE_FULLY_QUALIFIED_tostada}}"
+          tostada.image.registry: "{{.IMAGE_DOMAIN_tostada}}"
+          tostada.image.repository: "{{.IMAGE_REPO_NO_DOMAIN_tostada}}"
+          tostada.image.tag: "{{.IMAGE_TAG_tostada}}"

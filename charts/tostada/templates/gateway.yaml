@@ -70,7 +70,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: {{ .Values.gateway.image }}
+          image: {{ include "tostada.image" (dict "image" .Values.gateway.image "global" .Values.global) }}
           ports:
             - containerPort: 8080
           {{- with .Values.gateway.resources }}

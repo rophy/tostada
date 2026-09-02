@@ -1,9 +1,15 @@
+global:
+  # imageRegistry: "corp-registry.example.com"
+
 domain: localhost:30080
 
 existingSecret: tostada-secrets
 
 tostada:
-  image: tostada
+  image:
+    registry: ""
+    repository: tostada
+    tag: latest
   imagePullPolicy: IfNotPresent
   persistence:
     size: 64Mi
@@ -21,7 +27,10 @@ oidc:
   internalURL: "http://oidc-mock:8080"
 
 gateway:
-  image: nginx:1.27-alpine
+  image:
+    registry: ""
+    repository: nginx
+    tag: alpine
   service:
     type: NodePort
     nodePort: 30080
@@ -35,7 +44,10 @@ gateway:
 guacamole:
   url: "http://guacamole:8080"
   guacd:
-    image: ghcr.io/rophy/guacd:1.6.0-20260831-2
+    image:
+      registry: ghcr.io
+      repository: rophy/guacd
+      tag: 1.6.0-20260831-2
     resources:
       requests:
         cpu: 10m
@@ -43,7 +55,10 @@ guacamole:
       limits:
         memory: 256Mi
   web:
-    image: guacamole/guacamole:1.6.0
+    image:
+      registry: ""
+      repository: guacamole/guacamole
+      tag: "1.6.0"
     resources:
       requests:
         cpu: 10m
@@ -56,7 +71,10 @@ database:
 
 oidcMock:
   enabled: true
-  image: ghcr.io/rophy/oidc-mock:20260902-970dd92
+  image:
+    registry: ghcr.io
+    repository: rophy/oidc-mock
+    tag: 20260902-970dd92
   resources:
     requests:
       cpu: 10m
