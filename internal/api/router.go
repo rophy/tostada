@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/rophy/tostada/internal/auth"
 	"github.com/rophy/tostada/internal/config"
@@ -89,14 +90,19 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 		}
 		mux.Handle("/oidc/", oidcProxy)
 
-		// oidc-mock's authorize form POSTs to /authorize/callback (without /oidc prefix)
+		// oidc-mock's authorize and callback paths (without /oidc prefix)
 		authzProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = target.Scheme
 				req.URL.Host = target.Host
+				req.URL.Path = strings.TrimRight(req.URL.Path, "/")
+				if req.URL.Path == "" {
+					req.URL.Path = "/"
+				}
 				req.Host = target.Host
 			},
 		}
+		mux.Handle("/authorize", authzProxy)
 		mux.Handle("/authorize/", authzProxy)
 	}
 

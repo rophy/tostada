@@ -30,7 +30,7 @@ spec:
       labels:
         app: oidc-mock
       annotations:
-        checksum/config: {{ .Values.oidcMock.issuer | sha256sum }}
+        checksum/config: {{ toJson .Values.oidcMock | sha256sum }}
     spec:
       containers:
         - name: oidc-mock
