@@ -5,6 +5,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -41,8 +42,8 @@ func TestSessionLifecycle(t *testing.T) {
 		r.Body.Close()
 	})
 
-	// Spawn a KasmVNC session
-	resp := c.PostJSON("/api/sessions", fmt.Sprintf(`{"workspace":"kasmvnc-ubuntu","serverName":"%s"}`, serverName))
+	// Spawn a KasmVNC session (chrome is smaller, faster to pull in CI)
+	resp := c.PostJSON("/api/sessions", fmt.Sprintf(`{"workspace":"kasmvnc-chrome","serverName":"%s"}`, serverName))
 	defer resp.Body.Close()
 	c.ExpectStatus(resp, 201)
 
@@ -83,4 +84,20 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatal("connect response has no url")
 	}
 	t.Logf("connect url: %s", connectResp["url"])
+
+	// Verify the proxied page loads (not 404).
+	// This catches prefix-stripping bugs: if servesFromRoot isn't working,
+	// CHP forwards with the prefix and KasmVNC returns 404.
+	proxyURL := connectResp["url"]
+	parsed, err := url.Parse(proxyURL)
+	if err != nil {
+		t.Fatalf("parse connect url: %v", err)
+	}
+	// Use just the path+query so it goes through our gateway
+	proxyResp := c.Get(parsed.Path + "?" + parsed.RawQuery)
+	defer proxyResp.Body.Close()
+	if proxyResp.StatusCode == 404 {
+		t.Fatal("proxied session page returned 404 — prefix-stripping likely broken")
+	}
+	t.Logf("proxy status: %d", proxyResp.StatusCode)
 }
