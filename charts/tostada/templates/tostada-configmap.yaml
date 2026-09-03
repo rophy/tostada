@@ -30,6 +30,9 @@ data:
         type: {{ $ws.type | quote }}
         image: {{ include "tostada.image" (dict "image" $ws.image "global" $.Values.global) | quote }}
         port: {{ $ws.port }}
+        {{- if $ws.servesFromRoot }}
+        servesFromRoot: true
+        {{- end }}
         {{- with $ws.cmd }}
         cmd:
           {{- toYaml . | nindent 10 }}

@@ -114,6 +114,7 @@ workspaces:
     description: Full Ubuntu desktop in browser
     icon: desktop
     type: jupyterhub
+    servesFromRoot: true
     image:
       registry: ghcr.io
       repository: rophy/ubuntu-desktop
@@ -129,6 +130,7 @@ workspaces:
     description: Remote desktop client for RDP, VNC, and SSH
     icon: desktop
     type: jupyterhub
+    servesFromRoot: true
     image:
       registry: ""
       repository: kasmweb/remmina
@@ -144,6 +146,7 @@ workspaces:
     description: Isolated Chrome browser with clipboard disabled
     icon: browser
     type: jupyterhub
+    servesFromRoot: true
     image:
       registry: ""
       repository: kasmweb/chrome
@@ -183,7 +186,6 @@ jupyterhub:
 
         class PrefixAwareProxy(ConfigurableHTTPProxy):
             """Compensate for --no-include-prefix on a per-route basis."""
-            no_prefix_images = {"kasmvnc", "kasmweb"}
 
             def _serves_from_root(self, username, server_name):
                 user = self.app.users.get(username)
@@ -192,8 +194,8 @@ jupyterhub:
                 spawner = user.spawners.get(server_name)
                 if not spawner:
                     return False
-                image = getattr(spawner, "image", "") or ""
-                return any(tag in image.lower() for tag in self.no_prefix_images)
+                labels = getattr(spawner, "extra_labels", {}) or {}
+                return labels.get("tostada.dev/serves-from-root") == "true"
 
             async def add_route(self, routespec, target, data):
                 if data and "user" in data:
@@ -220,6 +222,8 @@ jupyterhub:
             }
             if ws.get("port"):
                 profile["kubespawner_override"]["port"] = ws["port"]
+            if ws.get("servesFromRoot"):
+                profile["kubespawner_override"].setdefault("extra_labels", {})["tostada.dev/serves-from-root"] = "true"
             overrides = ws.get("spawnerOverrides") or {}
             for k, v in overrides.items():
                 profile["kubespawner_override"][k] = v
