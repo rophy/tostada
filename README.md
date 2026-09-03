@@ -66,6 +66,27 @@ Local development runs entirely on a kind cluster — no docker-compose or exter
 - [Helm](https://helm.sh/)
 - Go, Node.js (use [mise](https://mise.jdx.dev/) — see `mise.toml`)
 
+### Secrets
+
+Tostada requires a Kubernetes secret with three keys. The secret name is configured via `existingSecret` in `values.yaml` (default: `tostada-secrets`).
+
+| Key | Purpose | How to generate |
+|-----|---------|-----------------|
+| `oidc-client-secret` | OIDC client secret shared with your identity provider | From your IdP's client registration |
+| `guacamole-json-secret-key` | Symmetric key for signing Guacamole JSON auth tokens (shared between tostada and guacamole) | `openssl rand -hex 32` |
+| `hub.services.tostada.apiToken` | API token for tostada to call JupyterHub's API as a service | `openssl rand -hex 32` |
+
+Create the secret before installing the chart:
+
+```sh
+kubectl create secret generic tostada-secrets \
+  --from-literal=oidc-client-secret=<from-your-idp> \
+  --from-literal=guacamole-json-secret-key=$(openssl rand -hex 32) \
+  --from-literal=hub.services.tostada.apiToken=$(openssl rand -hex 32)
+```
+
+For local development, `make up` generates this secret automatically.
+
 ### Setup
 
 ```sh
