@@ -22,4 +22,24 @@ data:
     database:
       path: {{ .Values.database.path | quote }}
     workspaces:
-      {{- toYaml .Values.workspaces | nindent 6 }}
+      {{- range $name, $ws := .Values.workspaces }}
+      - name: {{ $name }}
+        displayName: {{ $ws.displayName | quote }}
+        description: {{ $ws.description | quote }}
+        icon: {{ $ws.icon | quote }}
+        type: {{ $ws.type | quote }}
+        image: {{ include "tostada.image" (dict "image" $ws.image "global" $.Values.global) | quote }}
+        port: {{ $ws.port }}
+        {{- with $ws.cmd }}
+        cmd:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $ws.rdpCredentials }}
+        rdpCredentials:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $ws.spawnerOverrides }}
+        spawnerOverrides:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}

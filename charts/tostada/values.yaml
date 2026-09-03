@@ -96,30 +96,51 @@ oidcMock:
       preferred_username: bob
 
 workspaces:
-  - name: jupyter
+  jupyter:
     displayName: Jupyter Notebook
     description: Python data science environment
     icon: notebook
     type: jupyterhub
-    image: jupyter/minimal-notebook:latest
+    image:
+      registry: ""
+      repository: jupyter/minimal-notebook
+      tag: latest
     port: 8888
     cmd: ["jupyterhub-singleuser"]
-  - name: kasmvnc-ubuntu
+    spawnerOverrides:
+      default_url: "/lab"
+  kasmvnc-ubuntu:
     displayName: Ubuntu Desktop (KasmVNC)
     description: Full Ubuntu desktop in browser
     icon: desktop
     type: jupyterhub
-    image: kasmweb/ubuntu-noble-desktop:1.19.0
+    image:
+      registry: ""
+      repository: kasmweb/ubuntu-noble-desktop
+      tag: "1.19.0"
     port: 6901
     cmd: ["/dockerstartup/kasm_default_profile.sh"]
-  - name: kasmvnc-chrome
+    spawnerOverrides:
+      cmd: null
+      environment:
+        VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
+  kasmvnc-chrome:
     displayName: Chrome Browser
     description: Isolated Chrome browser with clipboard disabled
     icon: browser
     type: jupyterhub
-    image: kasmweb/chrome:1.19.0
+    image:
+      registry: ""
+      repository: kasmweb/chrome
+      tag: "1.19.0"
     port: 6901
     cmd: ["/dockerstartup/kasm_default_profile.sh"]
+    spawnerOverrides:
+      cmd: null
+      environment:
+        VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
+        KASM_SVC_SEND_CUT_TEXT: "-SendCutText=0"
+        KASM_SVC_ACCEPT_CUT_TEXT: "-AcceptCutText=0"
 
 jupyterhub:
   hub:
@@ -161,7 +182,36 @@ jupyterhub:
                 await super().add_route(routespec, target, data)
 
         c.JupyterHub.proxy_class = PrefixAwareProxy
+      profileList: |
+        import yaml
+
+        with open("/etc/tostada/config.yaml") as f:
+            cfg = yaml.safe_load(f)
+
+        profile_list = []
+        for ws in cfg.get("workspaces", []):
+            profile = {
+                "display_name": ws["displayName"],
+                "kubespawner_override": {
+                    "image": ws["image"],
+                },
+            }
+            if ws.get("port"):
+                profile["kubespawner_override"]["port"] = ws["port"]
+            overrides = ws.get("spawnerOverrides") or {}
+            for k, v in overrides.items():
+                profile["kubespawner_override"][k] = v
+            profile_list.append(profile)
+
+        c.KubeSpawner.profile_list = profile_list
     existingSecret: tostada-secrets
+    extraVolumes:
+      - name: tostada-config
+        configMap:
+          name: tostada-config
+    extraVolumeMounts:
+      - name: tostada-config
+        mountPath: /etc/tostada
     services:
       tostada: {}
     loadRoles:
@@ -175,28 +225,6 @@ jupyterhub:
           - tostada
 
   singleuser:
-    profileList:
-      - display_name: "Jupyter Notebook"
-        kubespawner_override:
-          image: jupyter/minimal-notebook:latest
-          cmd: ["jupyterhub-singleuser"]
-          default_url: "/lab"
-      - display_name: "Ubuntu Desktop (KasmVNC)"
-        kubespawner_override:
-          image: kasmweb/ubuntu-noble-desktop:1.19.0
-          cmd: null
-          port: 6901
-          environment:
-            VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
-      - display_name: "Chrome Browser"
-        kubespawner_override:
-          image: kasmweb/chrome:1.19.0
-          cmd: null
-          port: 6901
-          environment:
-            VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
-            KASM_SVC_SEND_CUT_TEXT: "-SendCutText=0"
-            KASM_SVC_ACCEPT_CUT_TEXT: "-AcceptCutText=0"
     storage:
       capacity: 256Mi
 
