@@ -30,6 +30,14 @@ tests:
           value: "ghcr.io/rophy/guacd:1.6.0-20260903-1"
         documentIndex: 0
 
+  - it: renders kasmvnc-ubuntu image with ghcr.io registry
+    template: tostada-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "image: \"ghcr.io/rophy/ubuntu-desktop:20260903-1\""
+        documentIndex: 0
+
   - it: renders guacamole web image with no registry
     template: guacamole.yaml
     asserts:

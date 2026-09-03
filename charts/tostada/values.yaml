@@ -115,9 +115,9 @@ workspaces:
     icon: desktop
     type: jupyterhub
     image:
-      registry: ""
-      repository: kasmweb/ubuntu-noble-desktop
-      tag: "1.19.0"
+      registry: ghcr.io
+      repository: rophy/ubuntu-desktop
+      tag: "20260903-1"
     port: 6901
     cmd: ["/dockerstartup/kasm_default_profile.sh"]
     spawnerOverrides:
