@@ -253,8 +253,8 @@ jupyterhub:
   proxy:
     chp:
       image:
-        name: quay.io/jupyterhub/configurable-http-proxy
-        tag: "5.2.0"
+        name: docker.io/rophy/configurable-http-proxy
+        tag: "5.2.0-20260528-r1"
       extraCommandLineFlags:
         - "--no-include-prefix"
         - "--change-origin"
