@@ -7,9 +7,9 @@ existingSecret: tostada-secrets
 
 tostada:
   image:
-    registry: ""
-    repository: tostada
-    tag: latest
+    registry: ghcr.io
+    repository: rophy/tostada
+    tag: "0.1.0"
   imagePullPolicy: IfNotPresent
   persistence:
     size: 64Mi
