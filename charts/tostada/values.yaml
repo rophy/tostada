@@ -247,6 +247,8 @@ jupyterhub:
           - tostada
 
   singleuser:
+    cloudMetadata:
+      blockWithIptables: false
     storage:
       capacity: 256Mi
 
