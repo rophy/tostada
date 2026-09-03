@@ -27,7 +27,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "ghcr.io/rophy/guacd:1.6.0-20260831-2"
+          value: "ghcr.io/rophy/guacd:1.6.0-20260903-1"
         documentIndex: 0
 
   - it: renders guacamole web image with no registry
@@ -73,7 +73,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "corp.example.com/rophy/guacd:1.6.0-20260831-2"
+          value: "corp.example.com/rophy/guacd:1.6.0-20260903-1"
         documentIndex: 0
       - equal:
           path: spec.template.spec.containers[1].image
