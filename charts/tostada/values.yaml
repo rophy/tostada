@@ -144,6 +144,9 @@ workspaces:
 
 jupyterhub:
   hub:
+    image:
+      name: quay.io/jupyterhub/k8s-hub
+      tag: "4.4.0"
     networkPolicy:
       interNamespaceAccessLabels: "accept"
     config:
@@ -230,8 +233,23 @@ jupyterhub:
 
   proxy:
     chp:
+      image:
+        name: quay.io/jupyterhub/configurable-http-proxy
+        tag: "5.2.0"
       extraCommandLineFlags:
         - "--no-include-prefix"
         - "--change-origin"
     service:
       type: NodePort
+
+  prePuller:
+    hook:
+      enabled: false
+    continuous:
+      enabled: false
+
+  scheduling:
+    userScheduler:
+      enabled: false
+    userPlaceholder:
+      enabled: false
