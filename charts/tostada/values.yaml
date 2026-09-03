@@ -167,7 +167,7 @@ jupyterhub:
       name: quay.io/jupyterhub/k8s-hub
       tag: "4.4.0"
     networkPolicy:
-      interNamespaceAccessLabels: "accept"
+      enabled: false
     config:
       JupyterHub:
         allow_named_servers: true
@@ -249,11 +249,15 @@ jupyterhub:
   singleuser:
     cloudMetadata:
       blockWithIptables: false
+    networkPolicy:
+      enabled: false
     storage:
       capacity: 256Mi
 
   proxy:
     chp:
+      networkPolicy:
+        enabled: false
       image:
         name: docker.io/rophy/configurable-http-proxy
         tag: "5.2.0-20260528-r1"
