@@ -124,21 +124,6 @@ workspaces:
       cmd: null
       environment:
         VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
-  kasmvnc-remmina:
-    displayName: Remmina Remote Desktop
-    description: Remote desktop client for RDP, VNC, and SSH
-    icon: desktop
-    type: jupyterhub
-    image:
-      registry: ""
-      repository: kasmweb/remmina
-      tag: "1.19.0"
-    port: 6901
-    cmd: ["/dockerstartup/kasm_default_profile.sh"]
-    spawnerOverrides:
-      cmd: null
-      environment:
-        VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
   kasmvnc-chrome:
     displayName: Chrome Browser
     description: Isolated Chrome browser with clipboard disabled
