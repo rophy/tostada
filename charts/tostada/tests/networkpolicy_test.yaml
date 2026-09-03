@@ -1,0 +1,23 @@
+suite: network policies disabled
+templates:
+  - charts/jupyterhub/templates/hub/netpol.yaml
+  - charts/jupyterhub/templates/proxy/netpol.yaml
+  - charts/jupyterhub/templates/singleuser/netpol.yaml
+tests:
+  - it: hub NetworkPolicy is not rendered
+    template: charts/jupyterhub/templates/hub/netpol.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: proxy NetworkPolicy is not rendered
+    template: charts/jupyterhub/templates/proxy/netpol.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: singleuser NetworkPolicy is not rendered
+    template: charts/jupyterhub/templates/singleuser/netpol.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
