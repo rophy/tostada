@@ -145,6 +145,16 @@ func (c *Client) CreateUserToken(username string) (string, error) {
 	return result.Token, nil
 }
 
+func (c *Client) ServerProgress(username, serverName string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, c.apiURL+"/users/"+username+"/servers/"+serverName+"/progress", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating progress request: %w", err)
+	}
+	req.Header.Set("Authorization", "token "+c.apiToken)
+	// Use a client without the default 10s timeout — SSE streams are long-lived
+	return (&http.Client{}).Do(req)
+}
+
 func (c *Client) StopServer(username, serverName string) error {
 	resp, err := c.do(http.MethodDelete, "/users/"+username+"/servers/"+serverName, nil)
 	if err != nil {

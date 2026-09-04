@@ -728,4 +728,45 @@ func TestConnectTokenCreateFails(t *testing.T) {
 	}
 }
 
+func TestSessionProgress(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/users/alice/servers/my-nb/progress" {
+			t.Errorf("unexpected hub request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("data: {\"progress\": 0, \"message\": \"Server requested\"}\n\n"))
+		w.Write([]byte("data: {\"progress\": 100, \"ready\": true, \"message\": \"Server ready\"}\n\n"))
+	}))
+	defer hubSrv.Close()
 
+	cfg := testConfig()
+	hubClient := hub.NewClient(hubSrv.URL, "test-token")
+	h := &sessionsHandler{
+		hubClient:  hubClient,
+		workspaces: cfg.Workspaces,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/my-nb/progress", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+
+	h.progress(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "text/event-stream" {
+		t.Errorf("Content-Type = %q, want text/event-stream", ct)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Server requested") {
+		t.Errorf("body missing 'Server requested': %s", body)
+	}
+	if !strings.Contains(body, "Server ready") {
+		t.Errorf("body missing 'Server ready': %s", body)
+	}
+}

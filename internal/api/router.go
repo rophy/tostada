@@ -55,6 +55,7 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	authed.HandleFunc("POST /api/sessions", sessions.create)
 	authed.HandleFunc("DELETE /api/sessions/{name}", sessions.stop)
 	authed.HandleFunc("GET /api/sessions/{name}/connect", sessions.connect)
+	authed.HandleFunc("GET /api/sessions/{name}/progress", sessions.progress)
 
 	devices := &devicesHandler{
 		store:         deviceStore,

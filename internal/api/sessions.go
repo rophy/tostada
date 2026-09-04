@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -115,6 +116,46 @@ func (h *sessionsHandler) stop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *sessionsHandler) progress(w http.ResponseWriter, r *http.Request) {
+	username := auth.UserFromContext(r.Context())
+	serverName := r.PathValue("name")
+
+	resp, err := h.hubClient.ServerProgress(username, serverName)
+	if err != nil {
+		log.Printf("ServerProgress(%s, %s) failed: %v", username, serverName, err)
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("ServerProgress(%s, %s) upstream status: %d", username, serverName, resp.StatusCode)
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	buf := make([]byte, 4096)
+	for {
+		n, readErr := resp.Body.Read(buf)
+		if n > 0 {
+			w.Write(buf[:n])
+			if ok {
+				flusher.Flush()
+			}
+		}
+		if readErr != nil {
+			return
+		}
+	}
 }
 
 func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {

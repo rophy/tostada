@@ -45,6 +45,29 @@ export async function getConnectURL(name: string): Promise<string> {
   return data.url
 }
 
+export interface ProgressEvent {
+  progress: number
+  message: string
+  ready?: boolean
+}
+
+export function subscribeProgress(name: string, onEvent: (e: ProgressEvent) => void, onDone: () => void): () => void {
+  const es = new EventSource(`/api/sessions/${name}/progress`)
+  es.onmessage = (ev) => {
+    const data: ProgressEvent = JSON.parse(ev.data)
+    onEvent(data)
+    if (data.ready) {
+      es.close()
+      onDone()
+    }
+  }
+  es.onerror = () => {
+    es.close()
+    onDone()
+  }
+  return () => es.close()
+}
+
 export interface CurrentUser {
   username: string
   isAdmin: boolean

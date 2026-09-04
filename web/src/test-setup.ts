@@ -19,3 +19,10 @@ Object.defineProperty(window, 'getComputedStyle', {
     getPropertyValue: () => '',
   }),
 })
+
+class MockEventSource {
+  onmessage: ((ev: MessageEvent) => void) | null = null
+  onerror: (() => void) | null = null
+  close() {}
+}
+globalThis.EventSource = MockEventSource as unknown as typeof EventSource

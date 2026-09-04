@@ -1,11 +1,52 @@
-import { Table, Button, Tag, Space } from 'antd'
-import { LinkOutlined, StopOutlined } from '@ant-design/icons'
-import { Server } from '../api'
+import { useEffect, useRef, useState } from 'react'
+import { Table, Button, Tag, Space, Progress } from 'antd'
+import { LinkOutlined, StopOutlined, LoadingOutlined } from '@ant-design/icons'
+import { Server, ProgressEvent, subscribeProgress } from '../api'
 
 interface Props {
   sessions: Record<string, Server>
   onConnect: (name: string) => void
   onStop: (name: string) => void
+}
+
+function SessionProgress({ name }: { name: string }) {
+  const [events, setEvents] = useState<ProgressEvent[]>([])
+  const unsubRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    unsubRef.current = subscribeProgress(
+      name,
+      (e) => setEvents((prev) => [...prev, e]),
+      () => {},
+    )
+    return () => unsubRef.current?.()
+  }, [name])
+
+  if (events.length === 0) return <LoadingOutlined style={{ marginLeft: 8 }} />
+
+  const last = events[events.length - 1]
+
+  return (
+    <div style={{ marginTop: 4 }}>
+      <Progress
+        percent={last.progress}
+        size="small"
+        status={last.ready ? 'success' : 'active'}
+        style={{ maxWidth: 200 }}
+      />
+      <div style={{
+        fontSize: 12,
+        color: '#888',
+        maxHeight: 80,
+        overflowY: 'auto',
+        marginTop: 4,
+      }}>
+        {events.map((e, i) => (
+          <div key={i}>{e.message}</div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function SessionList({ sessions, onConnect, onStop }: Props) {
@@ -36,7 +77,10 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
             record.ready ? (
               <Tag color="success">Ready</Tag>
             ) : record.pending ? (
-              <Tag color="processing">Starting...</Tag>
+              <>
+                <Tag color="processing">Starting...</Tag>
+                <SessionProgress name={record.name} />
+              </>
             ) : (
               <Tag color="warning">Unknown</Tag>
             ),
