@@ -170,7 +170,7 @@ func (h *sessionsHandler) connect(w http.ResponseWriter, r *http.Request) {
 			connectURL = srv.URL
 		} else {
 			connectURL = srv.URL + "?token=" + url.QueryEscape(token)
-			if ws != nil && (strings.Contains(ws.Image, "kasmvnc") || strings.Contains(ws.Image, "kasmweb")) {
+			if ws != nil && ws.ServesFromRoot {
 				wsPath := strings.TrimPrefix(srv.URL, "/") + "websockify"
 				connectURL += "&path=" + url.QueryEscape(wsPath)
 			}

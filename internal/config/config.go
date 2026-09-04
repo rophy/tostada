@@ -57,6 +57,7 @@ type Workspace struct {
 	Port           int            `yaml:"port" json:"port"`
 	Cmd            []string       `yaml:"cmd" json:"cmd"`
 	RDPCredentials RDPCredentials `yaml:"rdpCredentials" json:"-"`
+	ServesFromRoot bool           `yaml:"servesFromRoot" json:"servesFromRoot"`
 }
 
 type RDPCredentials struct {
