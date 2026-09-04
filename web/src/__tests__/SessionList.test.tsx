@@ -43,13 +43,15 @@ describe('SessionList', () => {
     expect(onConnect).toHaveBeenCalledWith('my-session')
   })
 
-  it('calls onStop with session name', async () => {
-    const onStop = vi.fn()
+  it('calls onStop with session name after confirmation', async () => {
+    const onStop = vi.fn().mockResolvedValue(undefined)
     const sessions = {
       'my-session': { name: 'my-session', ready: true, pending: false, url: '/url' },
     }
     render(<SessionList sessions={sessions} onConnect={() => {}} onStop={onStop} />)
     await userEvent.click(screen.getByText('Stop'))
+    const confirmBtn = await screen.findByRole('button', { name: 'Stop' })
+    await userEvent.click(confirmBtn)
     expect(onStop).toHaveBeenCalledWith('my-session')
   })
 })

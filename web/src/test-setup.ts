@@ -20,6 +20,13 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+
 class MockEventSource {
   onmessage: ((ev: MessageEvent) => void) | null = null
   onerror: (() => void) | null = null

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Table, Button, Tag, Space, Progress } from 'antd'
+import { Table, Button, Tag, Space, Progress, Popconfirm, message } from 'antd'
 import { LinkOutlined, StopOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons'
 import { Server, ProgressEvent, subscribeProgress } from '../api'
 
 interface Props {
   sessions: Record<string, Server>
   onConnect: (name: string) => void
-  onStop: (name: string) => void
+  onStop: (name: string) => Promise<void>
 }
 
 type SessionRecord = Server & { key: string; name: string }
@@ -97,6 +97,53 @@ function StatusTag({ record, expanded, onToggle }: {
   return <Tag color="warning">Unknown</Tag>
 }
 
+function StopAction({ record, onConnect, onStop }: {
+  record: SessionRecord
+  onConnect: (name: string) => void
+  onStop: (name: string) => Promise<void>
+}) {
+  const [stopping, setStopping] = useState(false)
+
+  const handleStop = async () => {
+    setStopping(true)
+    try {
+      await onStop(record.name)
+    } catch {
+      message.error(`Failed to stop session "${record.name}"`)
+      setStopping(false)
+    }
+  }
+
+  return (
+    <Space>
+      {record.ready && (
+        <Button
+          type="link"
+          icon={<LinkOutlined />}
+          onClick={() => onConnect(record.name)}
+        >
+          Connect
+        </Button>
+      )}
+      <Popconfirm
+        title="Stop this session?"
+        onConfirm={handleStop}
+        okText="Stop"
+        okButtonProps={{ danger: true }}
+      >
+        <Button
+          type="link"
+          danger
+          icon={<StopOutlined />}
+          loading={stopping}
+        >
+          Stop
+        </Button>
+      </Popconfirm>
+    </Space>
+  )
+}
+
 export function SessionList({ sessions, onConnect, onStop }: Props) {
   const entries = Object.entries(sessions)
   if (entries.length === 0) return null
@@ -148,25 +195,11 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
           key: 'actions',
           align: 'right' as const,
           render: (_, record) => (
-            <Space>
-              {record.ready && (
-                <Button
-                  type="link"
-                  icon={<LinkOutlined />}
-                  onClick={() => onConnect(record.name)}
-                >
-                  Connect
-                </Button>
-              )}
-              <Button
-                type="link"
-                danger
-                icon={<StopOutlined />}
-                onClick={() => onStop(record.name)}
-              >
-                Stop
-              </Button>
-            </Space>
+            <StopAction
+              record={record}
+              onConnect={onConnect}
+              onStop={onStop}
+            />
           ),
         },
       ]}
