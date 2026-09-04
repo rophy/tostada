@@ -20,6 +20,8 @@ export function WorkspaceCard({ workspace, onLaunch }: Props) {
   return (
     <Card
       hoverable
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      styles={{ body: { flex: 1 } }}
       actions={[
         <Button
           key="launch"
@@ -31,7 +33,7 @@ export function WorkspaceCard({ workspace, onLaunch }: Props) {
         </Button>,
       ]}
     >
-      <div style={{ fontSize: '2rem', marginBottom: 8 }}>
+      <div style={{ fontSize: '2rem', lineHeight: 1, marginBottom: 8 }}>
         {iconMap[workspace.icon] || '\u{1F4E6}'}
       </div>
       <Text strong style={{ fontSize: '1rem' }}>{workspace.displayName}</Text>
