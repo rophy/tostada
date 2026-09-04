@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Table, Button, Tag, Space, Progress } from 'antd'
-import { LinkOutlined, StopOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons'
+import { LinkOutlined, StopOutlined, LoadingOutlined } from '@ant-design/icons'
 import { Server, ProgressEvent, subscribeProgress } from '../api'
 
 interface Props {
@@ -9,122 +9,66 @@ interface Props {
   onStop: (name: string) => void
 }
 
-function SessionProgress({ name }: { name: string }) {
-  const [events, setEvents] = useState<ProgressEvent[]>([])
-  const [expanded, setExpanded] = useState(true)
-  const unsubRef = useRef<(() => void) | null>(null)
+type SessionRecord = Server & { key: string; name: string }
 
-  useEffect(() => {
-    unsubRef.current = subscribeProgress(
-      name,
-      (e) => setEvents((prev) => [...prev, e]),
-      () => {},
-    )
-    return () => unsubRef.current?.()
-  }, [name])
+const progressCache = new Map<string, ProgressEvent[]>()
 
-  if (events.length === 0) return <LoadingOutlined style={{ marginLeft: 8 }} />
-
-  const last = events[events.length - 1]
-
-  return (
-    <div style={{ marginTop: 4 }}>
-      <Progress
-        percent={last.progress}
-        size="small"
-        status={last.ready ? 'success' : 'active'}
-        style={{ maxWidth: 200 }}
-      />
-      {expanded && (
-        <div style={{
-          fontSize: 12,
-          color: '#888',
-          maxHeight: 80,
-          overflowY: 'auto',
-          marginTop: 4,
-        }}>
-          {events.map((e, i) => (
-            <div key={i}>{e.message}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StatusTag({ record }: { record: { name: string; ready: boolean; pending?: boolean } }) {
-  const [expanded, setExpanded] = useState(false)
-  const [events, setEvents] = useState<ProgressEvent[]>([])
+function useSessionProgress(name: string, pending?: boolean) {
+  const [events, setEvents] = useState<ProgressEvent[]>(progressCache.get(name) ?? [])
   const unsubRef = useRef<(() => void) | null>(null)
   const subscribedRef = useRef(false)
 
   useEffect(() => {
-    if (!record.pending || subscribedRef.current) return
+    if (!pending || subscribedRef.current) return
     subscribedRef.current = true
     unsubRef.current = subscribeProgress(
-      record.name,
-      (e) => setEvents((prev) => [...prev, e]),
+      name,
+      (e) => {
+        setEvents((prev) => {
+          const next = [...prev, e]
+          progressCache.set(name, next)
+          return next
+        })
+      },
       () => {},
     )
     return () => unsubRef.current?.()
-  }, [record.name, record.pending])
+  }, [name, pending])
 
-  if (record.ready) {
-    if (events.length === 0) return <Tag color="success">Ready</Tag>
-    const last = events[events.length - 1]
-    return (
-      <div>
-        <Tag
-          color="success"
-          style={{ cursor: 'pointer' }}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          Ready {expanded ? <DownOutlined /> : <RightOutlined />}
-        </Tag>
-        {expanded && (
-          <div style={{ fontSize: 12, color: '#888', maxHeight: 80, overflowY: 'auto', marginTop: 4 }}>
-            {events.map((e, i) => (
-              <div key={i}>{e.message}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
+  return events
+}
+
+function ExpandedProgress({ record }: { record: SessionRecord }) {
+  const events = useSessionProgress(record.name, record.pending)
+
+  if (events.length === 0 && record.pending) {
+    return <LoadingOutlined style={{ marginLeft: 8 }} />
   }
+  if (events.length === 0) return null
 
-  if (record.pending) {
-    return (
-      <div>
-        <Tag
-          color="processing"
-          style={{ cursor: 'pointer' }}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          Starting... {expanded ? <DownOutlined /> : <RightOutlined />}
-        </Tag>
-        {events.length === 0 && <LoadingOutlined style={{ marginLeft: 8 }} />}
-        {events.length > 0 && (
-          <div style={{ marginTop: 4 }}>
-            <Progress
-              percent={events[events.length - 1].progress}
-              size="small"
-              status="active"
-              style={{ maxWidth: 200 }}
-            />
-            {expanded && (
-              <div style={{ fontSize: 12, color: '#888', maxHeight: 80, overflowY: 'auto', marginTop: 4 }}>
-                {events.map((e, i) => (
-                  <div key={i}>{e.message}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+  const last = events[events.length - 1]
+
+  return (
+    <div>
+      <Progress
+        percent={last.progress}
+        size="small"
+        status={last.ready ? 'success' : 'active'}
+        style={{ maxWidth: 300 }}
+      />
+      <div style={{
+        fontSize: 12,
+        color: '#888',
+        maxHeight: 120,
+        overflowY: 'auto',
+        marginTop: 4,
+      }}>
+        {events.map((e, i) => (
+          <div key={i}>{e.message}</div>
+        ))}
       </div>
-    )
-  }
-
-  return <Tag color="warning">Unknown</Tag>
+    </div>
+  )
 }
 
 export function SessionList({ sessions, onConnect, onStop }: Props) {
@@ -138,10 +82,14 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
   }))
 
   return (
-    <Table
+    <Table<SessionRecord>
       dataSource={dataSource}
       pagination={false}
       size="middle"
+      expandable={{
+        expandedRowRender: (record) => <ExpandedProgress record={record} />,
+        rowExpandable: () => true,
+      }}
       columns={[
         {
           title: 'Name',
@@ -151,7 +99,14 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
         {
           title: 'Status',
           key: 'status',
-          render: (_, record) => <StatusTag record={record} />,
+          render: (_, record) =>
+            record.ready ? (
+              <Tag color="success">Ready</Tag>
+            ) : record.pending ? (
+              <Tag color="processing">Starting...</Tag>
+            ) : (
+              <Tag color="warning">Unknown</Tag>
+            ),
         },
         {
           title: 'Actions',
