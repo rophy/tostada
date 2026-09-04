@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Table, Button, Tag, Space, Progress } from 'antd'
-import { LinkOutlined, StopOutlined, LoadingOutlined } from '@ant-design/icons'
+import { LinkOutlined, StopOutlined, LoadingOutlined, DownOutlined, RightOutlined } from '@ant-design/icons'
 import { Server, ProgressEvent, subscribeProgress } from '../api'
 
 interface Props {
@@ -71,9 +71,43 @@ function ExpandedProgress({ record }: { record: SessionRecord }) {
   )
 }
 
+function StatusTag({ record, expanded, onToggle }: {
+  record: SessionRecord
+  expanded: boolean
+  onToggle: () => void
+}) {
+  const chevron = expanded
+    ? <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+    : <RightOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+
+  if (record.ready) {
+    return (
+      <Tag color="success" style={{ cursor: 'pointer' }} onClick={onToggle}>
+        Ready {chevron}
+      </Tag>
+    )
+  }
+  if (record.pending) {
+    return (
+      <Tag color="processing" style={{ cursor: 'pointer' }} onClick={onToggle}>
+        Starting... {chevron}
+      </Tag>
+    )
+  }
+  return <Tag color="warning">Unknown</Tag>
+}
+
 export function SessionList({ sessions, onConnect, onStop }: Props) {
   const entries = Object.entries(sessions)
   if (entries.length === 0) return null
+
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+
+  const toggleExpand = (key: string) => {
+    setExpandedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    )
+  }
 
   const dataSource = entries.map(([sessionName, server]) => ({
     ...server,
@@ -87,8 +121,10 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
       pagination={false}
       size="middle"
       expandable={{
+        expandedRowKeys: expandedKeys,
         expandedRowRender: (record) => <ExpandedProgress record={record} />,
-        rowExpandable: () => true,
+        expandIcon: () => null,
+        columnWidth: 0,
       }}
       columns={[
         {
@@ -99,14 +135,13 @@ export function SessionList({ sessions, onConnect, onStop }: Props) {
         {
           title: 'Status',
           key: 'status',
-          render: (_, record) =>
-            record.ready ? (
-              <Tag color="success">Ready</Tag>
-            ) : record.pending ? (
-              <Tag color="processing">Starting...</Tag>
-            ) : (
-              <Tag color="warning">Unknown</Tag>
-            ),
+          render: (_, record) => (
+            <StatusTag
+              record={record}
+              expanded={expandedKeys.includes(record.key)}
+              onToggle={() => toggleExpand(record.key)}
+            />
+          ),
         },
         {
           title: 'Actions',
