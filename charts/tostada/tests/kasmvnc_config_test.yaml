@@ -1,0 +1,32 @@
+suite: kasmvnc proxy config
+templates:
+  - kasmvnc-config.yaml
+tests:
+  - it: renders nginx config for kasmvnc proxy
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: kasmvnc-proxy-config
+
+  - it: strips user prefix and proxies to localhost 6901
+    asserts:
+      - matchRegex:
+          path: data["default.conf"]
+          pattern: "proxy_pass https://127.0.0.1:6901"
+
+  - it: enables websocket upgrade headers
+    asserts:
+      - matchRegex:
+          path: data["default.conf"]
+          pattern: "proxy_set_header Upgrade"
+      - matchRegex:
+          path: data["default.conf"]
+          pattern: 'proxy_set_header Connection "upgrade"'
+
+  - it: sets long read timeout for persistent connections
+    asserts:
+      - matchRegex:
+          path: data["default.conf"]
+          pattern: "proxy_read_timeout 86400"

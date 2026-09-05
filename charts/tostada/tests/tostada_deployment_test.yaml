@@ -1,0 +1,129 @@
+suite: tostada deployment
+templates:
+  - tostada-deployment.yaml
+  - tostada-configmap.yaml
+tests:
+  - it: renders deployment with app label
+    template: tostada-deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+        documentIndex: 0
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: tostada
+        documentIndex: 0
+
+  - it: includes jupyterhub network-access labels
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["hub.jupyter.org/network-access-hub"]
+          value: "true"
+        documentIndex: 0
+      - equal:
+          path: spec.template.metadata.labels["hub.jupyter.org/network-access-singleuser"]
+          value: "true"
+        documentIndex: 0
+
+  - it: adds configmap checksum annotation
+    template: tostada-deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.annotations["checksum/config"]
+        documentIndex: 0
+
+  - it: reads secrets from existingSecret
+    template: tostada-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OIDC_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: tostada-secrets
+                key: oidc-client-secret
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GUACAMOLE_JSON_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: tostada-secrets
+                key: guacamole-json-secret-key
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: JUPYTERHUB_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: tostada-secrets
+                key: hub.services.tostada.apiToken
+        documentIndex: 0
+
+  - it: mounts config and data volumes
+    template: tostada-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /etc/tostada
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /data
+        documentIndex: 0
+
+  - it: uses configmap and pvc volumes
+    template: tostada-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            configMap:
+              name: tostada-config
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: tostada-data
+        documentIndex: 0
+
+  - it: sets imagePullPolicy from values
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+        documentIndex: 0
+
+  - it: applies resource limits when set
+    template: tostada-deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].resources
+        documentIndex: 0
+
+  - it: renders service on port 8080
+    template: tostada-deployment.yaml
+    asserts:
+      - isKind:
+          of: Service
+        documentIndex: 1
+      - equal:
+          path: spec.selector.app
+          value: tostada
+        documentIndex: 1
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+        documentIndex: 1

@@ -1,0 +1,102 @@
+suite: tostada configmap
+templates:
+  - tostada-configmap.yaml
+tests:
+  - it: renders server addr
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'addr: ":8080"'
+
+  - it: renders oidc config with issuer and clientID
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'issuerURL: "http://localhost:30081"'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'clientID: "tostada"'
+
+  - it: renders oidc internalURL when set
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'internalURL: "http://oidc-mock:8080"'
+
+  - it: omits oidc internalURL when empty
+    set:
+      oidc.internalURL: ""
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: "internalURL:"
+
+  - it: renders redirectURL with http for localhost
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'redirectURL: "http://localhost:30080/api/auth/callback"'
+
+  - it: renders redirectURL with https for non-localhost domain
+    set:
+      domain: app.example.com
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'redirectURL: "https://app.example.com/api/auth/callback"'
+
+  - it: renders jupyterhub API and proxy URLs
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'apiURL: "http://hub:8081/hub/api"'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'proxyURL: "http://proxy-public:80"'
+
+  - it: renders guacamole URL
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'url: "http://guacamole:8080"'
+
+  - it: renders database path
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'path: "/data/tostada.db"'
+
+  - it: renders workspace with servesFromRoot flag
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "servesFromRoot: true"
+
+  - it: renders workspace spawnerOverrides
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "spawnerOverrides:"
+
+  - it: renders workspace rdpCredentials when set
+    set:
+      workspaces:
+        rdp-test:
+          displayName: RDP Test
+          description: Test
+          icon: desktop
+          type: jupyterhub
+          image:
+            repository: test/rdp
+            tag: "1.0"
+          port: 3389
+          rdpCredentials:
+            username: admin
+            password: secret
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "rdpCredentials:"
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "username: admin"

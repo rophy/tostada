@@ -1,0 +1,73 @@
+suite: oidc-mock
+templates:
+  - oidc-mock.yaml
+tests:
+  - it: renders when enabled
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: is not rendered when disabled
+    set:
+      oidcMock.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders configmap with issuer and clients
+    asserts:
+      - isKind:
+          of: ConfigMap
+        documentIndex: 0
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'issuer: "http://localhost:30081"'
+        documentIndex: 0
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'id: "tostada"'
+        documentIndex: 0
+
+  - it: includes redirect URIs in config
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "http://localhost:30080/api/auth/callback"
+        documentIndex: 0
+
+  - it: includes users in config
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "sub: alice"
+        documentIndex: 0
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "sub: bob"
+        documentIndex: 0
+
+  - it: renders service as NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+        documentIndex: 2
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30081
+        documentIndex: 2
+
+  - it: mounts config volume
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+        documentIndex: 1
+
+  - it: adds config checksum annotation
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.annotations["checksum/config"]
+        documentIndex: 1

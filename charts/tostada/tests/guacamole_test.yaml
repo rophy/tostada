@@ -1,0 +1,67 @@
+suite: guacamole
+templates:
+  - guacamole.yaml
+tests:
+  - it: renders guacd and guacamole containers
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: guacd
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: guacamole
+        documentIndex: 0
+
+  - it: sets guacamole env vars
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: GUACD_HOSTNAME
+            value: "localhost"
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: GUACD_PORT
+            value: "4822"
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: WEBAPP_CONTEXT
+            value: "ROOT"
+        documentIndex: 0
+
+  - it: reads JSON_SECRET_KEY from existing secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[1].env
+          content:
+            name: JSON_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: tostada-secrets
+                key: guacamole-json-secret-key
+        documentIndex: 0
+
+  - it: renders service on port 8080
+    asserts:
+      - equal:
+          path: spec.selector.app
+          value: guacamole
+        documentIndex: 1
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+        documentIndex: 1
+
+  - it: applies resource limits when set
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].resources
+        documentIndex: 0
+      - isNotNull:
+          path: spec.template.spec.containers[1].resources
+        documentIndex: 0
