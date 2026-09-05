@@ -241,6 +241,45 @@ func TestStopServer_Error(t *testing.T) {
 	}
 }
 
+func TestServerProgress(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("Method = %q, want GET", r.Method)
+		}
+		if r.URL.Path != "/users/alice/servers/my-nb/progress" {
+			t.Errorf("Path = %q", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "token test-token" {
+			t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("data: {\"progress\": 100}\n\n"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test-token")
+	resp, err := client.ServerProgress("alice", "my-nb")
+	if err != nil {
+		t.Fatalf("ServerProgress() error: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "text/event-stream" {
+		t.Errorf("Content-Type = %q", ct)
+	}
+}
+
+func TestServerProgress_ConnectionError(t *testing.T) {
+	client := NewClient("http://127.0.0.1:1", "test-token")
+	_, err := client.ServerProgress("alice", "my-nb")
+	if err == nil {
+		t.Fatal("ServerProgress() should error on connection refused")
+	}
+}
+
 func TestSpawnServer_Error(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
