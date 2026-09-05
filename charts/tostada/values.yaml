@@ -141,6 +141,11 @@ workspaces:
       cmd: null
       environment:
         VNCOPTIONS: "-DisableBasicAuth -sslOnly=0"
+      # Per-workspace resource override (KubeSpawner properties)
+      cpu_limit: 1
+      mem_limit: "1G"
+      cpu_guarantee: 0.25
+      mem_guarantee: "256M"
   kasmvnc-chrome:
     displayName: Chrome Browser
     description: Isolated Chrome browser with clipboard disabled
@@ -257,6 +262,14 @@ jupyterhub:
       enabled: false
     storage:
       capacity: 256Mi
+    # Default resource limits for all spawned workspace pods.
+    # Per-workspace overrides go in spawnerOverrides (see kasmvnc-remmina).
+    cpu:
+      limit: 2
+      guarantee: 0.5
+    memory:
+      limit: 2G
+      guarantee: 512M
 
   proxy:
     chp:
