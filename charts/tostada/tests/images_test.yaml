@@ -11,7 +11,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "ghcr.io/rophy/tostada:0.1.0"
+          value: "ghcr.io/rophy/tostada:0.2.0"
         documentIndex: 0
 
   - it: renders gateway image with ghcr.io registry
@@ -61,7 +61,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "corp.example.com/rophy/tostada:0.1.0"
+          value: "corp.example.com/rophy/tostada:0.2.0"
         documentIndex: 0
 
   - it: applies global.imageRegistry to gateway
@@ -118,5 +118,5 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "corp.example.com/rophy/tostada:0.1.0"
+          value: "corp.example.com/rophy/tostada:0.2.0"
         documentIndex: 0
