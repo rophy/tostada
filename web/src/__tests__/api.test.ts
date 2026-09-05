@@ -6,7 +6,9 @@ import {
   adminListDevices, adminCreateDevice, adminDeleteDevice,
   adminGrantAccess, adminRevokeAccess,
   adminListSessions, adminStopSession,
+  subscribeProgress,
 } from '../api'
+import { MockEventSource } from '../test-setup'
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch
@@ -104,6 +106,58 @@ describe('api', () => {
       await logout()
       expect(mockFetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' })
       expect(window.location.href).toBe('/')
+    })
+  })
+
+  describe('subscribeProgress', () => {
+    beforeEach(() => {
+      MockEventSource.instances = []
+    })
+
+    it('creates EventSource with correct URL', () => {
+      subscribeProgress('my-session', () => {}, () => {})
+      expect(MockEventSource.instances).toHaveLength(1)
+      expect(MockEventSource.instances[0].url).toBe('/api/sessions/my-session/progress')
+    })
+
+    it('calls onEvent for each message', () => {
+      const onEvent = vi.fn()
+      subscribeProgress('my-session', onEvent, () => {})
+      const es = MockEventSource.instances[0]
+      es.simulateMessage('{"progress":0,"message":"Server requested"}')
+      es.simulateMessage('{"progress":50,"message":"Pulling image"}')
+      expect(onEvent).toHaveBeenCalledTimes(2)
+      expect(onEvent).toHaveBeenCalledWith({ progress: 0, message: 'Server requested' })
+      expect(onEvent).toHaveBeenCalledWith({ progress: 50, message: 'Pulling image' })
+    })
+
+    it('calls onDone and closes when ready', () => {
+      const onDone = vi.fn()
+      const onEvent = vi.fn()
+      subscribeProgress('my-session', onEvent, onDone)
+      const es = MockEventSource.instances[0]
+      const closeSpy = vi.spyOn(es, 'close')
+      es.simulateMessage('{"progress":100,"ready":true,"message":"Server ready"}')
+      expect(onDone).toHaveBeenCalledTimes(1)
+      expect(closeSpy).toHaveBeenCalled()
+    })
+
+    it('calls onDone on error', () => {
+      const onDone = vi.fn()
+      subscribeProgress('my-session', () => {}, onDone)
+      const es = MockEventSource.instances[0]
+      const closeSpy = vi.spyOn(es, 'close')
+      es.simulateError()
+      expect(onDone).toHaveBeenCalledTimes(1)
+      expect(closeSpy).toHaveBeenCalled()
+    })
+
+    it('returns cleanup function that closes EventSource', () => {
+      const cleanup = subscribeProgress('my-session', () => {}, () => {})
+      const es = MockEventSource.instances[0]
+      const closeSpy = vi.spyOn(es, 'close')
+      cleanup()
+      expect(closeSpy).toHaveBeenCalled()
     })
   })
 

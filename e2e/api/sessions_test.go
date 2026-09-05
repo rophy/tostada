@@ -53,6 +53,26 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatalf("expected status=spawning, got %s", createResp["status"])
 	}
 
+	// Test SSE progress endpoint during spawn
+	t.Run("progress_stream", func(t *testing.T) {
+		resp := c.Get("/api/sessions/" + serverName + "/progress")
+		defer resp.Body.Close()
+		c.ExpectStatus(resp, 200)
+
+		ct := resp.Header.Get("Content-Type")
+		if ct != "text/event-stream" {
+			t.Errorf("Content-Type = %q, want text/event-stream", ct)
+		}
+
+		body := make([]byte, 4096)
+		n, _ := resp.Body.Read(body)
+		if n == 0 {
+			t.Error("progress stream returned no data")
+		} else {
+			t.Logf("progress stream sample: %s", string(body[:n]))
+		}
+	})
+
 	// Poll until ready (timeout 120s for pod startup)
 	ready := false
 	deadline := time.Now().Add(120 * time.Second)

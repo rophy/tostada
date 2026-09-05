@@ -728,6 +728,45 @@ func TestConnectTokenCreateFails(t *testing.T) {
 	}
 }
 
+func TestSessionProgress_HubError(t *testing.T) {
+	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer hubSrv.Close()
+
+	h := &sessionsHandler{
+		hubClient: hub.NewClient(hubSrv.URL, "test-token"),
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/my-nb/progress", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.progress(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("Status = %d, want 500", rec.Code)
+	}
+}
+
+func TestSessionProgress_HubConnectionRefused(t *testing.T) {
+	hubClient := hub.NewClient("http://127.0.0.1:1", "test-token")
+
+	h := &sessionsHandler{
+		hubClient: hubClient,
+	}
+
+	req := httptest.NewRequest("GET", "/api/sessions/my-nb/progress", nil)
+	req.SetPathValue("name", "my-nb")
+	req = req.WithContext(auth.WithUser(req.Context(), "alice"))
+	rec := httptest.NewRecorder()
+	h.progress(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("Status = %d, want 502", rec.Code)
+	}
+}
+
 func TestSessionProgress(t *testing.T) {
 	hubSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/users/alice/servers/my-nb/progress" {

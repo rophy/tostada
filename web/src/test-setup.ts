@@ -27,9 +27,21 @@ class MockResizeObserver {
 }
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
-class MockEventSource {
+export class MockEventSource {
+  static instances: MockEventSource[] = []
+  url: string
   onmessage: ((ev: MessageEvent) => void) | null = null
   onerror: (() => void) | null = null
+  constructor(url: string) {
+    this.url = url
+    MockEventSource.instances.push(this)
+  }
   close() {}
+  simulateMessage(data: string) {
+    this.onmessage?.({ data } as MessageEvent)
+  }
+  simulateError() {
+    this.onerror?.()
+  }
 }
 globalThis.EventSource = MockEventSource as unknown as typeof EventSource
