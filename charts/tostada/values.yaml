@@ -102,9 +102,9 @@ workspaces:
     icon: notebook
     type: jupyterhub
     image:
-      registry: ""
+      registry: quay.io
       repository: jupyter/minimal-notebook
-      tag: latest
+      tag: "2026-09-01"
     port: 8888
     cmd: ["jupyterhub-singleuser"]
     spawnerOverrides:
