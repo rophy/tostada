@@ -1,4 +1,4 @@
-global:
+global: {}
   # imageRegistry: "corp-registry.example.com"
 
 domain: localhost:30080
