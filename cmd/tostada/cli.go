@@ -11,20 +11,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func usage() {
-	fmt.Fprintf(os.Stderr, `Usage: tostada-cli <command> [args]
+func cliUsage() {
+	fmt.Fprintf(os.Stderr, `Usage: tostada <command> [args]
 
 Commands:
-  device list                                   List all devices
+  serve                                           Start the HTTP server
+  device list                                     List all devices
   device add <name> <display> <proto> <host> <port> <user> <pass>  Add a device
-  device remove <name>                          Remove a device
-  device grant <device> <username>              Grant user access
-  device revoke <device> <username>             Revoke user access
-  device import <file.yaml>                     Import devices from YAML
-  device access <device>                        List users with access
-  user list                                     List all users
-  user set-admin <username> <true|false>        Set admin flag
-  user delete <username>                        Remove user
+  device remove <name>                            Remove a device
+  device grant <device> <username>                Grant user access
+  device revoke <device> <username>               Revoke user access
+  device import <file.yaml>                       Import devices from YAML
+  device access <device>                          List users with access
+  user list                                       List all users
+  user set-admin <username> <true|false>          Set admin flag
+  user delete <username>                          Remove user
 
 Environment:
   TOSTADA_DB   Path to SQLite database (default: tostada.db)
@@ -32,9 +33,9 @@ Environment:
 	os.Exit(1)
 }
 
-func main() {
-	if len(os.Args) < 3 {
-		usage()
+func runCLI(args []string) {
+	if len(args) < 2 {
+		cliUsage()
 	}
 
 	dbPath := os.Getenv("TOSTADA_DB")
@@ -48,42 +49,39 @@ func main() {
 	}
 	store.DB().AutoMigrate(&model.User{})
 
-	switch os.Args[1] {
+	switch args[0] {
 	case "device":
-		switch os.Args[2] {
+		switch args[1] {
 		case "list":
 			cmdList(store)
 		case "add":
-			cmdAdd(store)
+			cmdAdd(store, args)
 		case "remove":
-			cmdRemove(store)
+			cmdRemove(store, args)
 		case "grant":
-			cmdGrant(store)
+			cmdGrant(store, args)
 		case "revoke":
-			cmdRevoke(store)
+			cmdRevoke(store, args)
 		case "import":
-			cmdImport(store)
+			cmdImport(store, args)
 		case "access":
-			cmdAccess(store)
+			cmdAccess(store, args)
 		default:
-			usage()
+			cliUsage()
 		}
 	case "user":
-		if len(os.Args) < 3 {
-			usage()
-		}
-		switch os.Args[2] {
+		switch args[1] {
 		case "list":
 			cmdUserList(store)
 		case "set-admin":
-			cmdUserSetAdmin(store)
+			cmdUserSetAdmin(store, args)
 		case "delete":
-			cmdUserDelete(store)
+			cmdUserDelete(store, args)
 		default:
-			usage()
+			cliUsage()
 		}
 	default:
-		usage()
+		cliUsage()
 	}
 }
 
@@ -100,22 +98,22 @@ func cmdList(store *device.GormStore) {
 	}
 }
 
-func cmdAdd(store *device.GormStore) {
-	if len(os.Args) < 10 {
-		fatal("usage: tostada-cli device add <name> <display> <proto> <host> <port> <user> <pass>")
+func cmdAdd(store *device.GormStore, args []string) {
+	if len(args) < 9 {
+		fatal("usage: tostada device add <name> <display> <proto> <host> <port> <user> <pass>")
 	}
-	port, err := strconv.Atoi(os.Args[7])
+	port, err := strconv.Atoi(args[6])
 	if err != nil {
 		fatal("invalid port: %v", err)
 	}
 	d := device.Device{
-		Name:     os.Args[3],
-		Display:  os.Args[4],
-		Protocol: os.Args[5],
-		Host:     os.Args[6],
+		Name:     args[2],
+		Display:  args[3],
+		Protocol: args[4],
+		Host:     args[5],
 		Port:     port,
-		Username: os.Args[8],
-		Password: os.Args[9],
+		Username: args[7],
+		Password: args[8],
 	}
 	if err := store.DB().Create(&d).Error; err != nil {
 		fatal("add device: %v", err)
@@ -123,11 +121,11 @@ func cmdAdd(store *device.GormStore) {
 	fmt.Printf("Device %q added.\n", d.Name)
 }
 
-func cmdRemove(store *device.GormStore) {
-	if len(os.Args) < 4 {
-		fatal("usage: tostada-cli device remove <name>")
+func cmdRemove(store *device.GormStore, args []string) {
+	if len(args) < 3 {
+		fatal("usage: tostada device remove <name>")
 	}
-	name := os.Args[3]
+	name := args[2]
 	var d device.Device
 	if err := store.DB().Where("name = ?", name).First(&d).Error; err != nil {
 		fatal("device %q not found", name)
@@ -137,11 +135,11 @@ func cmdRemove(store *device.GormStore) {
 	fmt.Printf("Device %q removed.\n", name)
 }
 
-func cmdGrant(store *device.GormStore) {
-	if len(os.Args) < 5 {
-		fatal("usage: tostada-cli device grant <device> <username>")
+func cmdGrant(store *device.GormStore, args []string) {
+	if len(args) < 4 {
+		fatal("usage: tostada device grant <device> <username>")
 	}
-	devName, username := os.Args[3], os.Args[4]
+	devName, username := args[2], args[3]
 	var d device.Device
 	if err := store.DB().Where("name = ?", devName).First(&d).Error; err != nil {
 		fatal("device %q not found", devName)
@@ -155,11 +153,11 @@ func cmdGrant(store *device.GormStore) {
 	fmt.Printf("Granted %q access to %q.\n", username, devName)
 }
 
-func cmdRevoke(store *device.GormStore) {
-	if len(os.Args) < 5 {
-		fatal("usage: tostada-cli device revoke <device> <username>")
+func cmdRevoke(store *device.GormStore, args []string) {
+	if len(args) < 4 {
+		fatal("usage: tostada device revoke <device> <username>")
 	}
-	devName, username := os.Args[3], os.Args[4]
+	devName, username := args[2], args[3]
 	var d device.Device
 	if err := store.DB().Where("name = ?", devName).First(&d).Error; err != nil {
 		fatal("device %q not found", devName)
@@ -172,11 +170,11 @@ func cmdRevoke(store *device.GormStore) {
 	fmt.Printf("Revoked %q access from %q.\n", username, devName)
 }
 
-func cmdAccess(store *device.GormStore) {
-	if len(os.Args) < 4 {
-		fatal("usage: tostada-cli device access <device>")
+func cmdAccess(store *device.GormStore, args []string) {
+	if len(args) < 3 {
+		fatal("usage: tostada device access <device>")
 	}
-	devName := os.Args[3]
+	devName := args[2]
 	var d device.Device
 	if err := store.DB().Where("name = ?", devName).First(&d).Error; err != nil {
 		fatal("device %q not found", devName)
@@ -207,11 +205,11 @@ type importDevice struct {
 	AllowedUsers []string `yaml:"allowedUsers"`
 }
 
-func cmdImport(store *device.GormStore) {
-	if len(os.Args) < 4 {
-		fatal("usage: tostada-cli device import <file.yaml>")
+func cmdImport(store *device.GormStore, args []string) {
+	if len(args) < 3 {
+		fatal("usage: tostada device import <file.yaml>")
 	}
-	data, err := os.ReadFile(os.Args[3])
+	data, err := os.ReadFile(args[2])
 	if err != nil {
 		fatal("read file: %v", err)
 	}
@@ -278,12 +276,12 @@ func cmdUserList(store *device.GormStore) {
 	}
 }
 
-func cmdUserSetAdmin(store *device.GormStore) {
-	if len(os.Args) < 5 {
-		fatal("usage: tostada-cli user set-admin <username> <true|false>")
+func cmdUserSetAdmin(store *device.GormStore, args []string) {
+	if len(args) < 4 {
+		fatal("usage: tostada user set-admin <username> <true|false>")
 	}
-	username := os.Args[3]
-	isAdmin := os.Args[4] == "true"
+	username := args[2]
+	isAdmin := args[3] == "true"
 
 	var u model.User
 	if store.DB().Where("username = ?", username).First(&u).Error != nil {
@@ -297,11 +295,11 @@ func cmdUserSetAdmin(store *device.GormStore) {
 	fmt.Printf("Updated user %q (admin=%v).\n", username, isAdmin)
 }
 
-func cmdUserDelete(store *device.GormStore) {
-	if len(os.Args) < 4 {
-		fatal("usage: tostada-cli user delete <username>")
+func cmdUserDelete(store *device.GormStore, args []string) {
+	if len(args) < 3 {
+		fatal("usage: tostada user delete <username>")
 	}
-	username := os.Args[3]
+	username := args[2]
 	result := store.DB().Where("username = ?", username).Delete(&model.User{})
 	if result.RowsAffected == 0 {
 		fmt.Printf("User %q not found.\n", username)

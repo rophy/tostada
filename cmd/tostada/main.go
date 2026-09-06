@@ -24,8 +24,23 @@ import (
 var registerCoverageHandler func(mux *http.ServeMux)
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "path to config file")
-	flag.Parse()
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "serve":
+			serve(os.Args[2:])
+			return
+		case "device", "user":
+			runCLI(os.Args[1:])
+			return
+		}
+	}
+	cliUsage()
+}
+
+func serve(args []string) {
+	flags := flag.NewFlagSet("serve", flag.ExitOnError)
+	configPath := flags.String("config", "config.yaml", "path to config file")
+	flags.Parse(args)
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -123,7 +138,6 @@ func main() {
 	}
 	fileServer := http.FileServer(http.FS(distFS))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Serve the file if it exists; otherwise fall back to index.html for SPA routing
 		if r.URL.Path != "/" {
 			if _, err := fs.Stat(distFS, r.URL.Path[1:]); err != nil {
 				r.URL.Path = "/"
