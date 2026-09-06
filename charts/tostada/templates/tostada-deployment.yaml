@@ -16,6 +16,7 @@ spec:
       annotations:
         checksum/config: {{ include (print .Template.BasePath "/tostada-configmap.yaml") . | sha256sum }}
     spec:
+      serviceAccountName: tostada
       containers:
         - name: tostada
           image: {{ include "tostada.image" (dict "image" .Values.tostada.image "global" .Values.global) }}

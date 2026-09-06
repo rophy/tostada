@@ -1,0 +1,43 @@
+suite: tostada RBAC
+templates:
+  - tostada-rbac.yaml
+tests:
+  - it: creates a ServiceAccount named tostada
+    asserts:
+      - isKind:
+          of: ServiceAccount
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: tostada
+        documentIndex: 0
+
+  - it: creates a Role with resourcequotas read access
+    asserts:
+      - isKind:
+          of: Role
+        documentIndex: 1
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["resourcequotas"]
+            verbs: ["get", "list"]
+        documentIndex: 1
+
+  - it: binds the Role to the ServiceAccount
+    asserts:
+      - isKind:
+          of: RoleBinding
+        documentIndex: 2
+      - equal:
+          path: roleRef.name
+          value: tostada
+        documentIndex: 2
+      - contains:
+          path: subjects
+          content:
+            kind: ServiceAccount
+            name: tostada
+            namespace: NAMESPACE
+        documentIndex: 2
