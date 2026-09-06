@@ -195,16 +195,11 @@ export async function adminRevokeAccess(deviceName: string, username: string): P
 
 export interface ResourceUsage {
   resource: string
-  hard: string
   used: string
+  hard: string
 }
 
-export interface QuotaInfo {
-  name: string
-  resources: ResourceUsage[]
-}
-
-export async function adminFetchQuota(): Promise<QuotaInfo[]> {
+export async function adminFetchQuota(): Promise<ResourceUsage[]> {
   const res = await fetch('/api/admin/quota')
   if (!res.ok) throw new Error(await res.text())
   return res.json()

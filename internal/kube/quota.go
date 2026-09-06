@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,13 +13,8 @@ import (
 
 type ResourceUsage struct {
 	Resource string `json:"resource"`
-	Hard     string `json:"hard"`
 	Used     string `json:"used"`
-}
-
-type QuotaInfo struct {
-	Name      string          `json:"name"`
-	Resources []ResourceUsage `json:"resources"`
+	Hard     string `json:"hard"`
 }
 
 type QuotaClient struct {
@@ -42,27 +38,58 @@ func NewQuotaClientFromClientset(clientset kubernetes.Interface, namespace strin
 	return &QuotaClient{clientset: clientset, namespace: namespace}
 }
 
-func (c *QuotaClient) ListQuotas(ctx context.Context) ([]QuotaInfo, error) {
-	quotas, err := c.clientset.CoreV1().ResourceQuotas(c.namespace).List(ctx, metav1.ListOptions{})
+func (c *QuotaClient) GetResourceUsage(ctx context.Context) ([]ResourceUsage, error) {
+	pods, err := c.clientset.CoreV1().Pods(c.namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "status.phase=Running",
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list resource quotas: %w", err)
+		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
-	return toQuotaInfos(quotas.Items), nil
-}
 
-func toQuotaInfos(quotas []corev1.ResourceQuota) []QuotaInfo {
-	var result []QuotaInfo
-	for _, q := range quotas {
-		info := QuotaInfo{Name: q.Name}
-		for resource, hard := range q.Status.Hard {
-			used := q.Status.Used[resource]
-			info.Resources = append(info.Resources, ResourceUsage{
-				Resource: string(resource),
-				Hard:     hard.String(),
-				Used:     used.String(),
-			})
+	var cpuReq, cpuLim, memReq, memLim resource.Quantity
+	podCount := 0
+	for _, pod := range pods.Items {
+		podCount++
+		for _, c := range pod.Spec.Containers {
+			if r, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
+				cpuReq.Add(r)
+			}
+			if l, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+				cpuLim.Add(l)
+			}
+			if r, ok := c.Resources.Requests[corev1.ResourceMemory]; ok {
+				memReq.Add(r)
+			}
+			if l, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+				memLim.Add(l)
+			}
 		}
-		result = append(result, info)
 	}
-	return result
+
+	hardLimits := map[string]string{}
+	quotas, err := c.clientset.CoreV1().ResourceQuotas(c.namespace).List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, q := range quotas.Items {
+			for res, qty := range q.Status.Hard {
+				hardLimits[string(res)] = qty.String()
+			}
+		}
+	}
+
+	hard := func(keys ...string) string {
+		for _, k := range keys {
+			if v, ok := hardLimits[k]; ok {
+				return v
+			}
+		}
+		return "∞"
+	}
+
+	return []ResourceUsage{
+		{Resource: "cpu requests", Used: cpuReq.String(), Hard: hard("requests.cpu", "cpu")},
+		{Resource: "cpu limits", Used: cpuLim.String(), Hard: hard("limits.cpu")},
+		{Resource: "memory requests", Used: memReq.String(), Hard: hard("requests.memory", "memory")},
+		{Resource: "memory limits", Used: memLim.String(), Hard: hard("limits.memory")},
+		{Resource: "pods", Used: fmt.Sprintf("%d", podCount), Hard: hard("pods")},
+	}, nil
 }

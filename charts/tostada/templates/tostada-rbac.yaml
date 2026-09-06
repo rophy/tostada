@@ -9,7 +9,7 @@ metadata:
   name: tostada
 rules:
   - apiGroups: [""]
-    resources: ["resourcequotas"]
+    resources: ["resourcequotas", "pods"]
     verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

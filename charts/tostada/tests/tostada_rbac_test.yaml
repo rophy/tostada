@@ -12,7 +12,7 @@ tests:
           value: tostada
         documentIndex: 0
 
-  - it: creates a Role with resourcequotas read access
+  - it: creates a Role with resourcequotas and pods read access
     asserts:
       - isKind:
           of: Role
@@ -21,7 +21,7 @@ tests:
           path: rules
           content:
             apiGroups: [""]
-            resources: ["resourcequotas"]
+            resources: ["resourcequotas", "pods"]
             verbs: ["get", "list"]
         documentIndex: 1
 

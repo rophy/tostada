@@ -298,12 +298,12 @@ func (h *adminHandler) getQuota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	quotas, err := h.quotaClient.ListQuotas(r.Context())
+	usage, err := h.quotaClient.GetResourceUsage(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(quotas)
+	json.NewEncoder(w).Encode(usage)
 }

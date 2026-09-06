@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Table, Button, Popconfirm, Tag, message, Empty, Card, Progress, Space, Typography } from 'antd'
 import { StopOutlined } from '@ant-design/icons'
-import { AdminSession, QuotaInfo, adminListSessions, adminStopSession, adminFetchQuota } from '../api'
+import { AdminSession, ResourceUsage, adminListSessions, adminStopSession, adminFetchQuota } from '../api'
 
 const { Text } = Typography
 
@@ -15,11 +15,12 @@ function parseResource(value: string): number {
 }
 
 function formatResource(resource: string, value: string): string {
-  if (resource === 'cpu') {
+  if (value === '∞') return '∞'
+  if (resource.startsWith('cpu')) {
     const n = parseResource(value)
     return n < 1 ? `${Math.round(n * 1000)}m` : `${n}`
   }
-  if (resource === 'memory') {
+  if (resource.startsWith('memory')) {
     const bytes = parseResource(value)
     if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}Gi`
     if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)}Mi`
@@ -28,50 +29,55 @@ function formatResource(resource: string, value: string): string {
   return value
 }
 
-function QuotaSummary({ quotas }: { quotas: QuotaInfo[] }) {
-  if (quotas.length === 0) return null
+function ResourceCard({ items }: { items: ResourceUsage[] }) {
+  if (items.length === 0) return null
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      {quotas.map(q => (
-        <Card key={q.name} size="small" title={`Quota: ${q.name}`} style={{ marginBottom: 8 }}>
-          <Space size="large" wrap>
-            {q.resources.map(r => {
-              const used = parseResource(r.used)
-              const hard = parseResource(r.hard)
-              const pct = hard > 0 ? Math.round((used / hard) * 100) : 0
-              const status = pct >= 90 ? 'exception' : pct >= 70 ? 'normal' : 'success'
-              return (
-                <div key={r.resource} style={{ textAlign: 'center', minWidth: 100 }}>
-                  <Progress type="circle" percent={pct} size={60} status={status} />
-                  <div style={{ marginTop: 4 }}>
-                    <Text strong>{r.resource}</Text>
-                  </div>
-                  <Text type="secondary">{formatResource(r.resource, r.used)} / {formatResource(r.resource, r.hard)}</Text>
+    <Card size="small" title="Namespace Resources" style={{ marginBottom: 16 }}>
+      <Space size="large" wrap>
+        {items.map(r => {
+          const isCapped = r.hard !== '∞'
+          const used = parseResource(r.used)
+          const hard = isCapped ? parseResource(r.hard) : 0
+          const pct = isCapped && hard > 0 ? Math.round((used / hard) * 100) : 0
+          const status = pct >= 90 ? 'exception' : pct >= 70 ? 'normal' : 'success'
+          return (
+            <div key={r.resource} style={{ textAlign: 'center', minWidth: 110 }}>
+              {isCapped ? (
+                <Progress type="circle" percent={pct} size={60} status={status} />
+              ) : (
+                <div style={{ width: 60, height: 60, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 20 }}>{formatResource(r.resource, r.used)}</Text>
                 </div>
-              )
-            })}
-          </Space>
-        </Card>
-      ))}
-    </div>
+              )}
+              <div style={{ marginTop: 4 }}>
+                <Text strong style={{ fontSize: 12 }}>{r.resource}</Text>
+              </div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {formatResource(r.resource, r.used)} / {formatResource(r.resource, r.hard)}
+              </Text>
+            </div>
+          )
+        })}
+      </Space>
+    </Card>
   )
 }
 
 export function AdminSessions() {
   const [sessions, setSessions] = useState<AdminSession[]>([])
-  const [quotas, setQuotas] = useState<QuotaInfo[]>([])
+  const [resources, setResources] = useState<ResourceUsage[]>([])
   const [loading, setLoading] = useState(true)
 
   const refresh = async () => {
     setLoading(true)
     try {
-      const [sessData, quotaData] = await Promise.all([
+      const [sessData, resData] = await Promise.all([
         adminListSessions(),
         adminFetchQuota(),
       ])
       setSessions(sessData || [])
-      setQuotas(quotaData || [])
+      setResources(resData || [])
     } catch (e) {
       message.error('Failed to load sessions')
     }
@@ -90,13 +96,13 @@ export function AdminSessions() {
     }
   }
 
-  if (!loading && sessions.length === 0 && quotas.length === 0) {
+  if (!loading && sessions.length === 0 && resources.length === 0) {
     return <Empty description="No active sessions" />
   }
 
   return (
     <>
-      <QuotaSummary quotas={quotas} />
+      <ResourceCard items={resources} />
       <Table
         dataSource={sessions.map(s => ({ ...s, key: `${s.username}/${s.serverName}` }))}
         loading={loading}
