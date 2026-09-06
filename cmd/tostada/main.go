@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"io/fs"
 	"log"
 	"net/http"
@@ -10,39 +9,51 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/rophy/tostada/internal/api"
+	"github.com/rophy/tostada/internal/audit"
 	"github.com/rophy/tostada/internal/auth"
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
 	"github.com/rophy/tostada/internal/kube"
 	"github.com/rophy/tostada/internal/model"
-	"github.com/rophy/tostada/internal/audit"
 	"github.com/rophy/tostada/web"
 )
 
 var registerCoverageHandler func(mux *http.ServeMux)
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "serve":
-			serve(os.Args[2:])
-			return
-		case "device", "user":
-			runCLI(os.Args[1:])
-			return
-		}
+	rootCmd := &cobra.Command{
+		Use:   "tostada",
+		Short: "Tostada workspace portal",
 	}
-	cliUsage()
+
+	rootCmd.AddCommand(serveCmd())
+	rootCmd.AddCommand(deviceCmd())
+	rootCmd.AddCommand(userCmd())
+
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
 
-func serve(args []string) {
-	flags := flag.NewFlagSet("serve", flag.ExitOnError)
-	configPath := flags.String("config", "config.yaml", "path to config file")
-	flags.Parse(args)
+func serveCmd() *cobra.Command {
+	var configPath string
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Start the HTTP server",
+		Run: func(cmd *cobra.Command, args []string) {
+			serve(configPath)
+		},
+	}
+	cmd.Flags().StringVarP(&configPath, "config", "c", "config.yaml", "path to config file")
+	return cmd
+}
 
-	cfg, err := config.Load(*configPath)
+func serve(configPath string) {
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -92,7 +103,6 @@ func serve(args []string) {
 		log.Fatal("JUPYTERHUB_API_TOKEN environment variable is required")
 	}
 
-	// Retry OIDC discovery — sidecar proxy may not be ready yet
 	var authProvider *auth.Auth
 	for i := 0; i < 30; i++ {
 		authProvider, err = auth.NewAuth(
