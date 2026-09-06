@@ -11,6 +11,7 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
+	"github.com/rophy/tostada/internal/kube"
 	"github.com/rophy/tostada/internal/model"
 	"github.com/rophy/tostada/internal/audit"
 )
@@ -20,7 +21,7 @@ type HealthChecker interface {
 	HealthCheck(ctx context.Context) error
 }
 
-func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger, guacSecretKey string, healthChecker HealthChecker) *http.ServeMux {
+func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Auth, deviceStore device.AdminStore, userStore model.UserStore, auditLog *audit.AuditLog, accessLogger *audit.AccessLogger, guacSecretKey string, healthChecker HealthChecker, quotaClient *kube.QuotaClient) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +73,7 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 		deviceStore: deviceStore,
 		hubClient:   hubClient,
 		auditLog:    auditLog,
+		quotaClient: quotaClient,
 	}
 	adminMux.HandleFunc("GET /api/admin/users", admin.listUsers)
 	adminMux.HandleFunc("PATCH /api/admin/users/{username}", admin.updateUser)
@@ -84,6 +86,7 @@ func NewRouter(cfg *config.Config, hubClient *hub.Client, authProvider *auth.Aut
 	adminMux.HandleFunc("DELETE /api/admin/devices/{name}/grants/{username}", admin.revokeAccess)
 	adminMux.HandleFunc("GET /api/admin/sessions", admin.listSessions)
 	adminMux.HandleFunc("DELETE /api/admin/sessions/{username}/{server}", admin.stopSession)
+	adminMux.HandleFunc("GET /api/admin/quota", admin.getQuota)
 
 	authed.Handle("/api/admin/", AdminMiddleware(userStore)(adminMux))
 

@@ -8,6 +8,7 @@ import (
 	"github.com/rophy/tostada/internal/auth"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
+	"github.com/rophy/tostada/internal/kube"
 	"github.com/rophy/tostada/internal/model"
 	"github.com/rophy/tostada/internal/audit"
 )
@@ -33,6 +34,7 @@ type adminHandler struct {
 	deviceStore device.AdminStore
 	hubClient   *hub.Client
 	auditLog    *audit.AuditLog
+	quotaClient *kube.QuotaClient
 }
 
 func (h *adminHandler) listUsers(w http.ResponseWriter, r *http.Request) {
@@ -287,4 +289,21 @@ func (h *adminHandler) stopSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *adminHandler) getQuota(w http.ResponseWriter, r *http.Request) {
+	if h.quotaClient == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]any{})
+		return
+	}
+
+	quotas, err := h.quotaClient.ListQuotas(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(quotas)
 }

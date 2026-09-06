@@ -15,6 +15,7 @@ import (
 	"github.com/rophy/tostada/internal/config"
 	"github.com/rophy/tostada/internal/device"
 	"github.com/rophy/tostada/internal/hub"
+	"github.com/rophy/tostada/internal/kube"
 	"github.com/rophy/tostada/internal/model"
 	"github.com/rophy/tostada/internal/audit"
 	"github.com/rophy/tostada/web"
@@ -101,7 +102,16 @@ func main() {
 
 	hubClient := hub.NewClient(cfg.JupyterHub.APIURL, hubAPIToken)
 
-	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger, guacJSONSecretKey, deviceStore)
+	namespace := os.Getenv("TOSTADA_NAMESPACE")
+	if namespace == "" {
+		namespace = "tostada"
+	}
+	quotaClient, err := kube.NewQuotaClient(namespace)
+	if err != nil {
+		log.Printf("Kubernetes quota client unavailable: %v", err)
+	}
+
+	mux := api.NewRouter(cfg, hubClient, authProvider, deviceStore, userStore, auditLog, accessLogger, guacJSONSecretKey, deviceStore, quotaClient)
 
 	if registerCoverageHandler != nil {
 		registerCoverageHandler(mux)

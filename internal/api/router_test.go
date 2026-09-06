@@ -60,7 +60,7 @@ func TestNewRouter(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{})
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{}, nil)
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -73,7 +73,7 @@ func TestNewRouter_WithOIDCProxy(t *testing.T) {
 	authProvider := &auth.Auth{}
 	store := testDeviceStore(t)
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{})
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", &mockHealthChecker{}, nil)
 	if mux == nil {
 		t.Fatal("NewRouter returned nil")
 	}
@@ -86,7 +86,7 @@ func TestHealthz(t *testing.T) {
 	store := testDeviceStore(t)
 	hc := &mockHealthChecker{}
 
-	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+	mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc, nil)
 
 	req := httptest.NewRequest("GET", "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -105,7 +105,7 @@ func TestReadyz(t *testing.T) {
 
 	t.Run("healthy", func(t *testing.T) {
 		hc := &mockHealthChecker{}
-		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc, nil)
 
 		req := httptest.NewRequest("GET", "/readyz", nil)
 		rec := httptest.NewRecorder()
@@ -118,7 +118,7 @@ func TestReadyz(t *testing.T) {
 
 	t.Run("unhealthy", func(t *testing.T) {
 		hc := &mockHealthChecker{err: errors.New("db connection lost")}
-		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc)
+		mux := NewRouter(cfg, hubClient, authProvider, store, nil, nil, nil, "test-secret-key", hc, nil)
 
 		req := httptest.NewRequest("GET", "/readyz", nil)
 		rec := httptest.NewRecorder()
