@@ -25,3 +25,8 @@ tests:
       - equal:
           path: spec.storageClassName
           value: "standard"
+
+  - it: renders exactly one tostada PVC (no singleuser PVC)
+    asserts:
+      - hasDocuments:
+          count: 1
