@@ -45,6 +45,14 @@ tests:
           path: data["config.yaml"]
           pattern: 'redirectURL: "https://app.example.com/api/auth/callback"'
 
+  - it: renders redirectURL with http for cluster-internal domain
+    set:
+      domain: "gateway:8080"
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'redirectURL: "http://gateway:8080/api/auth/callback"'
+
   - it: renders jupyterhub API and proxy URLs
     asserts:
       - matchRegex:

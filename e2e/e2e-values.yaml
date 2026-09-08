@@ -1,0 +1,17 @@
+# Overrides for in-cluster e2e testing.
+# All URLs are cluster-internal — no NodePorts needed.
+domain: gateway:8080
+
+oidcMock:
+  issuer: "http://oidc-mock:8080"
+  redirectURIs:
+    - "http://gateway:8080/api/auth/callback"
+  nodePort: null
+
+oidc:
+  internalURL: ""
+
+gateway:
+  service:
+    type: ClusterIP
+    nodePort: null

@@ -20,3 +20,18 @@ deploy:
           tostada.image.registry: "{{.IMAGE_DOMAIN_tostada}}"
           tostada.image.repository: "{{.IMAGE_REPO_NO_DOMAIN_tostada}}"
           tostada.image.tag: "{{.IMAGE_TAG_tostada}}"
+profiles:
+  - name: e2e
+    deploy:
+      helm:
+        releases:
+          - name: tostada
+            chartPath: charts/tostada
+            namespace: tostada
+            createNamespace: true
+            valuesFiles:
+              - e2e/e2e-values.yaml
+            setValueTemplates:
+              tostada.image.registry: "{{.IMAGE_DOMAIN_tostada}}"
+              tostada.image.repository: "{{.IMAGE_REPO_NO_DOMAIN_tostada}}"
+              tostada.image.tag: "{{.IMAGE_TAG_tostada}}"

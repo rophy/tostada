@@ -1,4 +1,4 @@
-{{- $scheme := ternary "https" "http" (not (hasPrefix "localhost" .Values.domain)) -}}
+{{- $scheme := ternary "http" "https" (or (hasPrefix "localhost" .Values.domain) (not (contains "." .Values.domain))) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
