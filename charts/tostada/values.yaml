@@ -197,12 +197,22 @@ jupyterhub:
   hub:
     db:
       type: postgres
-      url: postgresql+psycopg2://tostada:tostada@tostada-postgresql/jupyterhub
+      url: postgresql+psycopg2://tostada:tostada@tostada-postgresql:5432/jupyterhub
     image:
       name: quay.io/jupyterhub/k8s-hub
       tag: "4.4.0"
     networkPolicy:
       enabled: false
+    initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.37
+        securityContext:
+          runAsUser: 65534
+          runAsNonRoot: true
+        command:
+          - sh
+          - -c
+          - "until nc -z tostada-postgresql 5432; do echo 'Waiting for PostgreSQL...'; sleep 2; done"
     config:
       JupyterHub:
         allow_named_servers: true

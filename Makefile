@@ -45,7 +45,7 @@ e2e-test: ## Run e2e tests in-cluster (creates cluster if needed)
 			--from-literal=guacamole-json-secret-key=$$(openssl rand -hex 32) \
 			--from-literal=hub.services.tostada.apiToken=$$(openssl rand -hex 32); \
 	fi
-	skaffold run --kube-context $(KUBE_CTX) -p e2e --force
+	skaffold run --kube-context $(KUBE_CTX) -p e2e
 	docker build -t tostada-e2e -f e2e/Dockerfile .
 	kind load docker-image tostada-e2e:latest --name $(CLUSTER_NAME)
 	kubectl --context $(KUBE_CTX) -n tostada delete job tostada-e2e 2>/dev/null || true
