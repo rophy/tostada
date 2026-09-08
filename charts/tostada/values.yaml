@@ -78,7 +78,8 @@ postgresql:
     tag: "17-alpine"
   database: tostada
   username: tostada
-  password: tostada
+  # password is auto-generated on first install and preserved across upgrades.
+  # To bring your own credentials, set existingSecret instead.
   storage: 1Gi
   # storageClass: ""
   # existingSecret: ""  # Use a pre-existing secret (must have 'password' and 'dsn' keys)

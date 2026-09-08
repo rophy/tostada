@@ -88,7 +88,6 @@
         "image": { "$ref": "#/$defs/image" },
         "database": { "type": "string" },
         "username": { "type": "string" },
-        "password": { "type": "string" },
         "storage": { "type": "string" },
         "storageClass": { "type": "string" },
         "existingSecret": { "type": "string", "description": "Pre-existing secret with 'password' and 'dsn' keys" },

@@ -1,5 +1,14 @@
 {{- if .Values.postgresql.enabled }}
 {{- if not .Values.postgresql.existingSecret }}
+{{- $username := .Values.postgresql.username | default "tostada" }}
+{{- $database := .Values.postgresql.database | default "tostada" }}
+{{- $existingSecret := lookup "v1" "Secret" .Release.Namespace "tostada-postgresql" }}
+{{- $password := "" }}
+{{- if and $existingSecret $existingSecret.data (index $existingSecret.data "password") }}
+  {{- $password = index $existingSecret.data "password" | b64dec }}
+{{- else }}
+  {{- $password = randAlphaNum 24 }}
+{{- end }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -8,9 +17,9 @@ metadata:
     app: tostada-postgresql
 type: Opaque
 data:
-  password: {{ .Values.postgresql.password | default "tostada" | b64enc | quote }}
-  dsn: {{ printf "host=tostada-postgresql dbname=%s user=%s password=%s sslmode=disable" (.Values.postgresql.database | default "tostada") (.Values.postgresql.username | default "tostada") (.Values.postgresql.password | default "tostada") | b64enc | quote }}
-  jupyterhub-db-url: {{ printf "postgresql+psycopg2://%s:%s@tostada-postgresql:5432/jupyterhub" (.Values.postgresql.username | default "tostada") (.Values.postgresql.password | default "tostada") | b64enc | quote }}
+  password: {{ $password | b64enc | quote }}
+  dsn: {{ printf "host=tostada-postgresql dbname=%s user=%s password=%s sslmode=disable" $database $username $password | b64enc | quote }}
+  jupyterhub-db-url: {{ printf "postgresql+psycopg2://%s:%s@tostada-postgresql:5432/jupyterhub" $username $password | b64enc | quote }}
 ---
 {{- end }}
 apiVersion: apps/v1
