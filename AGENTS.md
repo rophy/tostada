@@ -2,7 +2,7 @@
 
 - `make up` deploys everything (kind cluster + Helm chart via skaffold, with coverage instrumentation)
 - `make down` tears down the cluster
-- `make e2e-test` runs e2e tests and collects server coverage (requires `make up` first)
+- `make e2e-test` runs e2e tests in-cluster via Kubernetes Job and collects server coverage
 - No `.env` or docker-compose needed — everything runs on localhost via kind NodePorts
 
 ## Development Policy
@@ -54,4 +54,4 @@ kubectl --context kind-tostada -n tostada exec <pod> -c tostada -- /tostada devi
 kubectl --context kind-tostada -n tostada exec <pod> -c tostada -- /tostada device import <file>
 ```
 
-The DB path defaults to `TOSTADA_DB=/data/tostada.db` (set in the Dockerfile).
+The database connection is configured via the `DATABASE_DSN` environment variable (injected from the `tostada-postgresql` secret).
