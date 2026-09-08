@@ -8,7 +8,7 @@ RUN npm ci
 COPY web/ ./
 RUN DEVELOPMENT=$DEVELOPMENT npm run build
 
-FROM golang:1.22-alpine AS backend
+FROM golang:1.25-alpine AS backend
 ARG DEVELOPMENT
 WORKDIR /app
 COPY go.mod go.sum ./

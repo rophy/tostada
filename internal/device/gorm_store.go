@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -20,11 +21,19 @@ func WithSilentLogger() Option {
 }
 
 func NewGormStore(dbPath string, opts ...Option) (*GormStore, error) {
+	return newStore(sqlite.Open(dbPath), opts...)
+}
+
+func NewGormStorePostgres(dsn string, opts ...Option) (*GormStore, error) {
+	return newStore(postgres.Open(dsn), opts...)
+}
+
+func newStore(dialector gorm.Dialector, opts ...Option) (*GormStore, error) {
 	logLevel := logger.Warn
 	for _, o := range opts {
 		o(&logLevel)
 	}
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+	db, err := gorm.Open(dialector, &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {

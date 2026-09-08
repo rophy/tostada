@@ -68,7 +68,32 @@ guacamole:
       limits:
         memory: 512Mi
 
+postgresql:
+  enabled: true
+  image:
+    registry: ""
+    repository: postgres
+    tag: "17-alpine"
+  database: tostada
+  username: tostada
+  password: tostada
+  storage: 1Gi
+  # storageClass: ""
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  # For external PostgreSQL (CNPG, RDS, etc.), set host and provide a secret
+  # containing the DSN. The built-in StatefulSet is skipped when host is set.
+  external:
+    host: ""
+    # existingSecret: my-pg-secret
+    # secretKey: dsn
+
 database:
+  # SQLite path (used when postgresql.enabled=false)
   path: "/data/tostada.db"
 
 oidcMock:
@@ -171,6 +196,10 @@ workspaces:
 # global.imageRegistry does not apply here. For air-gapped environments,
 # override hub.image.name and proxy.chp.image.name with the full path,
 # e.g. corp-registry.example.com/jupyterhub/k8s-hub
+# When postgresql.enabled=true, configure JupyterHub to use PostgreSQL:
+#   jupyterhub.hub.db:
+#     type: postgres
+#     url: postgresql+psycopg2://tostada:tostada@tostada-postgresql/jupyterhub
 jupyterhub:
   hub:
     image:
