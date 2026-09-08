@@ -26,7 +26,9 @@ spec:
       serviceAccountName: tostada
       containers:
         - name: tostada
-          image: {{ include "tostada.image" (dict "image" .Values.tostada.image "global" .Values.global) }}
+          {{- $img := deepCopy .Values.tostada.image }}
+          {{- if not $img.tag }}{{ $_ := set $img "tag" .Chart.AppVersion }}{{- end }}
+          image: {{ include "tostada.image" (dict "image" $img "global" .Values.global) }}
           imagePullPolicy: {{ .Values.tostada.imagePullPolicy }}
           ports:
             - containerPort: 8080

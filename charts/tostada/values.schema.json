@@ -24,7 +24,15 @@
       "type": "object",
       "required": ["image"],
       "properties": {
-        "image": { "$ref": "#/$defs/image" },
+        "image": {
+          "type": "object",
+          "required": ["repository"],
+          "properties": {
+            "registry": { "type": "string" },
+            "repository": { "type": "string" },
+            "tag": { "type": ["string", "number"] }
+          }
+        },
         "imagePullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
         "persistence": {
           "type": "object",
