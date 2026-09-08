@@ -3,6 +3,19 @@ kind: ConfigMap
 metadata:
   name: gateway-nginx-config
 data:
+  nginx.conf: |
+    worker_processes 1;
+    pid /run/nginx.pid;
+    events {
+        worker_connections 1024;
+    }
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        sendfile on;
+        keepalive_timeout 65;
+        include /etc/nginx/conf.d/*.conf;
+    }
   default.conf: |
     map $http_upgrade $connection_upgrade {
         default upgrade;
@@ -98,12 +111,24 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 30
           volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
             - name: config
               mountPath: /etc/nginx/conf.d
       volumes:
+        - name: nginx-conf
+          configMap:
+            name: gateway-nginx-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf
         - name: config
           configMap:
             name: gateway-nginx-config
+            items:
+              - key: default.conf
+                path: default.conf
 ---
 apiVersion: v1
 kind: Service
