@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: cd web && npm ci
+
+      - name: Build frontend
+        run: cd web && npm run build
+
+      - name: Go unit tests
+        run: go test ./... -v -coverprofile=coverage.out
+
+      - name: Frontend tests
+        run: cd web && npx vitest run --coverage
+
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+      - name: Build Helm dependencies
+        run: helm dependency build charts/tostada
+
+      - name: Helm unit tests
+        run: helm unittest charts/tostada
+
+      - name: Extract versions from Chart.yaml
+        id: versions
+        run: |
+          APP_VERSION=$(yq '.appVersion' charts/tostada/Chart.yaml)
+          CHART_VERSION=$(yq '.version' charts/tostada/Chart.yaml)
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      app_version: ${{ steps.versions.outputs.app_version }}
+      chart_version: ${{ steps.versions.outputs.chart_version }}
+
+  publish-container:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image already exists
+        id: check
+        run: |
+          VERSION="${{ needs.build-and-test.outputs.app_version }}"
+          if docker manifest inspect "ghcr.io/${{ github.repository }}:$VERSION" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Container image $VERSION already exists, skipping build"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Container image $VERSION not found, will build and push"
+          fi
+
+      - uses: docker/build-push-action@v7
+        if: steps.check.outputs.exists == 'false'
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ needs.build-and-test.outputs.app_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create git tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git tag "container-${{ needs.build-and-test.outputs.app_version }}"
+          git push origin "container-${{ needs.build-and-test.outputs.app_version }}"
+
+  publish-chart:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Check if chart already exists
+        id: check
+        run: |
+          VERSION="${{ needs.build-and-test.outputs.chart_version }}"
+          if helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/tostada" --version "$VERSION" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Chart $VERSION already exists, skipping publish"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Chart $VERSION not found, will package and push"
+          fi
+
+      - name: Build dependencies
+        if: steps.check.outputs.exists == 'false'
+        run: helm dependency build charts/tostada
+
+      - name: Package chart
+        if: steps.check.outputs.exists == 'false'
+        run: helm package charts/tostada
+
+      - name: Push chart
+        if: steps.check.outputs.exists == 'false'
+        run: helm push tostada-${{ needs.build-and-test.outputs.chart_version }}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+      - name: Create git tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git tag "chart-${{ needs.build-and-test.outputs.chart_version }}"
+          git push origin "chart-${{ needs.build-and-test.outputs.chart_version }}"
