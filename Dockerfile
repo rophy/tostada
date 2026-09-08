@@ -24,4 +24,4 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 ENV TOSTADA_DB=/data/tostada.db
 COPY --from=backend /tostada /tostada
-ENTRYPOINT ["/tostada", "serve", "-config", "/etc/tostada/config.yaml"]
+ENTRYPOINT ["/tostada", "serve", "--config", "/etc/tostada/config.yaml"]
