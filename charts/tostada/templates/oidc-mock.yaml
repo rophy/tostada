@@ -77,11 +77,17 @@ kind: Service
 metadata:
   name: oidc-mock
 spec:
+  {{- if .Values.oidcMock.nodePort }}
   type: NodePort
+  {{- else }}
+  type: ClusterIP
+  {{- end }}
   selector:
     app: oidc-mock
   ports:
     - port: 8080
       targetPort: 8080
+      {{- if .Values.oidcMock.nodePort }}
       nodePort: {{ .Values.oidcMock.nodePort }}
+      {{- end }}
 {{- end }}

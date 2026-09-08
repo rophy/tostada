@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["domain", "existingSecret"],
+  "properties": {
+    "global": {
+      "type": ["object", "null"],
+      "properties": {
+        "imageRegistry": { "type": "string" },
+        "podAnnotations": { "type": "object" }
+      }
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Domain (with optional port) for the portal"
+    },
+    "existingSecret": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the Kubernetes secret containing OIDC, guacamole, and JupyterHub credentials"
+    },
+    "tostada": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": { "$ref": "#/$defs/image" },
+        "imagePullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "size": { "type": "string" },
+            "storageClass": { "type": "string" }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "oidc": {
+      "type": "object",
+      "required": ["clientID"],
+      "properties": {
+        "clientID": { "type": "string" },
+        "clientSecret": { "type": "string" },
+        "internalURL": { "type": "string" }
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": { "$ref": "#/$defs/image" },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] },
+            "nodePort": { "type": ["integer", "null"] }
+          }
+        },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "guacamole": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "guacd": {
+          "type": "object",
+          "properties": {
+            "image": { "$ref": "#/$defs/image" },
+            "resources": { "$ref": "#/$defs/resources" }
+          }
+        },
+        "web": {
+          "type": "object",
+          "properties": {
+            "image": { "$ref": "#/$defs/image" },
+            "resources": { "$ref": "#/$defs/resources" }
+          }
+        }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "database": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "storage": { "type": "string" },
+        "storageClass": { "type": "string" },
+        "existingSecret": { "type": "string", "description": "Pre-existing secret with 'password' and 'dsn' keys" },
+        "resources": { "$ref": "#/$defs/resources" },
+        "external": {
+          "type": ["object", "null"],
+          "properties": {
+            "existingSecret": { "type": "string" },
+            "secretKey": { "type": "string" }
+          }
+        }
+      }
+    },
+    "oidcMock": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "resources": { "$ref": "#/$defs/resources" },
+        "nodePort": { "type": ["integer", "null"] },
+        "issuer": { "type": "string" },
+        "redirectURIs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["sub", "email"],
+            "properties": {
+              "sub": { "type": "string" },
+              "email": { "type": "string" },
+              "name": { "type": "string" },
+              "preferred_username": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "workspaces": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["displayName", "description", "icon", "type", "image", "port"],
+        "properties": {
+          "displayName": { "type": "string" },
+          "description": { "type": "string" },
+          "icon": { "type": "string" },
+          "type": { "type": "string", "enum": ["jupyterhub"] },
+          "image": { "$ref": "#/$defs/image" },
+          "port": { "type": "integer" },
+          "servesFromRoot": { "type": "boolean" },
+          "cmd": { "type": "array", "items": { "type": "string" } },
+          "spawnerOverrides": { "type": "object" },
+          "rdpCredentials": { "type": "object" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "tag"],
+      "properties": {
+        "registry": { "type": "string" },
+        "repository": { "type": "string" },
+        "tag": { "type": ["string", "number"] }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": ["string", "number"] },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": ["string", "number"] },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

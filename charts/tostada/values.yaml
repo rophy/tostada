@@ -1,4 +1,4 @@
-global: {}
+global:
   # imageRegistry: "corp-registry.example.com"
   # podAnnotations:
   #   sidecar.istio.io/inject: "false"
@@ -81,6 +81,7 @@ postgresql:
   password: tostada
   storage: 1Gi
   # storageClass: ""
+  # existingSecret: ""  # Use a pre-existing secret (must have 'password' and 'dsn' keys)
   resources:
     requests:
       cpu: 10m

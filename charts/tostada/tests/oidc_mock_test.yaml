@@ -46,7 +46,7 @@ tests:
           pattern: "sub: bob"
         documentIndex: 0
 
-  - it: renders service as NodePort
+  - it: renders service as NodePort when nodePort is set
     asserts:
       - equal:
           path: spec.type
@@ -55,6 +55,18 @@ tests:
       - equal:
           path: spec.ports[0].nodePort
           value: 30081
+        documentIndex: 2
+
+  - it: renders service as ClusterIP when nodePort is null
+    set:
+      oidcMock.nodePort: null
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+        documentIndex: 2
+      - isNull:
+          path: spec.ports[0].nodePort
         documentIndex: 2
 
   - it: mounts config volume

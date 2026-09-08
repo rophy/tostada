@@ -30,3 +30,14 @@ Usage: include "tostada.podAnnotations" (dict "global" .Values.global "extra" $e
 {{- toYaml $merged -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+PostgreSQL secret name: use existingSecret if provided, otherwise the generated one.
+*/}}
+{{- define "tostada.postgresql.secretName" -}}
+{{- if .Values.postgresql.existingSecret -}}
+  {{- .Values.postgresql.existingSecret -}}
+{{- else -}}
+  tostada-postgresql
+{{- end -}}
+{{- end -}}
