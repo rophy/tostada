@@ -261,7 +261,7 @@ jupyterhub:
     networkPolicy:
       enabled: false
     storage:
-      capacity: 256Mi
+      type: none
     # Default resource limits for all spawned workspace pods.
     # Per-workspace overrides go in spawnerOverrides (see kasmvnc-remmina).
     cpu:

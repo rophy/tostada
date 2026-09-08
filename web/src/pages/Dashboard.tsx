@@ -46,8 +46,7 @@ export function Dashboard() {
   }, [sessions])
 
   const handleLaunch = async (ws: Workspace) => {
-    const name = `${ws.name}-${Date.now().toString(36)}`
-    await launchWorkspace(ws.name, name)
+    await launchWorkspace(ws.name, ws.name)
     refresh()
   }
 

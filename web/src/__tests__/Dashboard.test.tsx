@@ -101,7 +101,7 @@ describe('Dashboard', () => {
     await userEvent.click(screen.getByText('Launch'))
     expect(mockedApi.launchWorkspace).toHaveBeenCalledWith(
       'jupyter',
-      expect.stringMatching(/^jupyter-/)
+      'jupyter'
     )
   })
 
