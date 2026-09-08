@@ -62,7 +62,15 @@ func serve(configPath string) {
 	if dsn == "" {
 		log.Fatal("DATABASE_DSN environment variable is required")
 	}
-	deviceStore, err := device.NewGormStorePostgres(dsn)
+	var deviceStore *device.GormStore
+	for i := 0; i < 30; i++ {
+		deviceStore, err = device.NewGormStorePostgres(dsn)
+		if err == nil {
+			break
+		}
+		log.Printf("Database connection attempt %d/30 failed: %v", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
 		log.Fatalf("Failed to initialize device store: %v", err)
 	}
