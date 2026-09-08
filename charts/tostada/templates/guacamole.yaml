@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: guacamole
+  {{- with .Values.guacamole.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: 1
   selector:
@@ -11,6 +15,10 @@ spec:
     metadata:
       labels:
         app: guacamole
+      {{- with (include "tostada.podAnnotations" (dict "global" .Values.global)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
         - name: guacd

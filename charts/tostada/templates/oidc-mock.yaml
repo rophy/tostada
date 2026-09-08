@@ -20,6 +20,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oidc-mock
+  {{- with .Values.oidcMock.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: 1
   selector:
@@ -31,6 +35,9 @@ spec:
         app: oidc-mock
       annotations:
         checksum/config: {{ toJson .Values.oidcMock | sha256sum }}
+        {{- with (include "tostada.podAnnotations" (dict "global" .Values.global)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
         - name: oidc-mock

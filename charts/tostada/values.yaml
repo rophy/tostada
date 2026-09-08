@@ -1,5 +1,7 @@
 global: {}
   # imageRegistry: "corp-registry.example.com"
+  # podAnnotations:
+  #   sidecar.istio.io/inject: "false"
 
 domain: localhost:30080
 

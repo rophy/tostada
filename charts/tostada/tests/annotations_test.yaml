@@ -1,0 +1,98 @@
+suite: annotations
+templates:
+  - tostada-deployment.yaml
+  - tostada-configmap.yaml
+  - gateway.yaml
+  - guacamole.yaml
+  - oidc-mock.yaml
+tests:
+  - it: no pod annotations on guacamole by default
+    template: guacamole.yaml
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+        documentIndex: 0
+
+  - it: global.podAnnotations applied to all pods
+    set:
+      global.podAnnotations:
+        inject: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.inject
+          value: "false"
+        template: gateway.yaml
+        documentIndex: 1
+      - equal:
+          path: spec.template.metadata.annotations.inject
+          value: "false"
+        template: guacamole.yaml
+        documentIndex: 0
+      - equal:
+          path: spec.template.metadata.annotations.inject
+          value: "false"
+        template: tostada-deployment.yaml
+        documentIndex: 0
+      - equal:
+          path: spec.template.metadata.annotations.inject
+          value: "false"
+        template: oidc-mock.yaml
+        documentIndex: 1
+
+  - it: deployment annotations on tostada
+    set:
+      tostada.annotations:
+        team: platform
+    template: tostada-deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations.team
+          value: platform
+        documentIndex: 0
+
+  - it: deployment annotations on gateway
+    set:
+      gateway.annotations:
+        team: platform
+    template: gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations.team
+          value: platform
+        documentIndex: 1
+
+  - it: deployment annotations on guacamole
+    set:
+      guacamole.annotations:
+        team: platform
+    template: guacamole.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations.team
+          value: platform
+        documentIndex: 0
+
+  - it: deployment annotations on oidc-mock
+    set:
+      oidcMock.annotations:
+        team: platform
+    template: oidc-mock.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations.team
+          value: platform
+        documentIndex: 1
+
+  - it: preserves checksum alongside global pod annotations
+    set:
+      global.podAnnotations:
+        inject: "false"
+    template: tostada-deployment.yaml
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations.checksum/config
+        documentIndex: 0
+      - equal:
+          path: spec.template.metadata.annotations.inject
+          value: "false"
+        documentIndex: 0

@@ -13,3 +13,20 @@ Usage: {{ include "tostada.image" (dict "image" .Values.path.to.image "global" .
   {{- printf "%s:%s" .image.repository (.image.tag | toString) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Merge global.podAnnotations with extra annotations (e.g. checksums).
+Usage: include "tostada.podAnnotations" (dict "global" .Values.global "extra" $extraDict)
+*/}}
+{{- define "tostada.podAnnotations" -}}
+{{- $merged := dict -}}
+{{- if and .global .global.podAnnotations -}}
+  {{- $merged = merge $merged .global.podAnnotations -}}
+{{- end -}}
+{{- if .extra -}}
+  {{- $merged = merge $merged .extra -}}
+{{- end -}}
+{{- if $merged -}}
+{{- toYaml $merged -}}
+{{- end -}}
+{{- end -}}

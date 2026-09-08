@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tostada
+  {{- with .Values.tostada.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: 1
   selector:
@@ -15,6 +19,9 @@ spec:
         hub.jupyter.org/network-access-singleuser: "true"
       annotations:
         checksum/config: {{ include (print .Template.BasePath "/tostada-configmap.yaml") . | sha256sum }}
+        {{- with (include "tostada.podAnnotations" (dict "global" .Values.global)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       serviceAccountName: tostada
       containers:

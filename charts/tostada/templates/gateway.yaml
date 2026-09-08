@@ -56,6 +56,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: 1
   selector:
@@ -67,6 +71,10 @@ spec:
         app: gateway
         hub.jupyter.org/network-access-hub: "true"
         hub.jupyter.org/network-access-proxy-http: "true"
+      {{- with (include "tostada.podAnnotations" (dict "global" .Values.global)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
         - name: nginx
