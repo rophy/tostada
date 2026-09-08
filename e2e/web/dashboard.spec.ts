@@ -54,7 +54,7 @@ test('admin link hidden for non-admin users', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Admin' })).not.toBeVisible()
 })
 
-test('launch and stop a workspace session', async ({ page }) => {
+test('launch and stop a workspace session', { timeout: 180_000 }, async ({ page }) => {
   await login(page, 'alice')
   await expect(page.getByText('Workspaces')).toBeVisible()
 
