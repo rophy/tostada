@@ -1,0 +1,173 @@
+suite: postgresql
+templates:
+  - postgresql.yaml
+tests:
+  - it: renders all resources when enabled
+    asserts:
+      - hasDocuments:
+          count: 4
+
+  - it: is not rendered when disabled
+    set:
+      postgresql.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders secret with auto-generated password
+    asserts:
+      - isKind:
+          of: Secret
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: tostada-postgresql
+        documentIndex: 0
+      - isNotNull:
+          path: data.password
+        documentIndex: 0
+      - isNotNull:
+          path: data.dsn
+        documentIndex: 0
+      - isNotNull:
+          path: data["jupyterhub-db-url"]
+        documentIndex: 0
+
+  - it: skips secret when existingSecret is set
+    set:
+      postgresql.existingSecret: my-pg-secret
+    asserts:
+      - hasDocuments:
+          count: 3
+      - isKind:
+          of: StatefulSet
+        documentIndex: 0
+
+  - it: renders statefulset with correct image
+    asserts:
+      - isKind:
+          of: StatefulSet
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "postgres:17-alpine"
+        documentIndex: 1
+
+  - it: sets database and username env vars
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_DB
+            value: "tostada"
+        documentIndex: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_USER
+            value: "tostada"
+        documentIndex: 1
+
+  - it: reads password from secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: tostada-postgresql
+                key: password
+        documentIndex: 1
+
+  - it: reads password from existingSecret when set
+    set:
+      postgresql.existingSecret: my-pg-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: my-pg-secret
+                key: password
+        documentIndex: 0
+
+  - it: uses custom database and username
+    set:
+      postgresql.database: mydb
+      postgresql.username: myuser
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_DB
+            value: "mydb"
+        documentIndex: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_USER
+            value: "myuser"
+        documentIndex: 1
+
+  - it: sets PVC storage size
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 1Gi
+        documentIndex: 1
+
+  - it: sets custom storage class
+    set:
+      postgresql.storageClass: fast-ssd
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: fast-ssd
+        documentIndex: 1
+
+  - it: renders init configmap with jupyterhub db creation
+    asserts:
+      - isKind:
+          of: ConfigMap
+        documentIndex: 2
+      - matchRegex:
+          path: data["create-jupyterhub-db.sql"]
+          pattern: "CREATE DATABASE jupyterhub"
+        documentIndex: 2
+
+  - it: renders service on port 5432
+    asserts:
+      - isKind:
+          of: Service
+        documentIndex: 3
+      - equal:
+          path: spec.ports[0].port
+          value: 5432
+        documentIndex: 3
+
+  - it: has readiness and liveness probes
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+        documentIndex: 1
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+        documentIndex: 1
+
+  - it: mounts data and init-scripts volumes
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /var/lib/postgresql/data
+        documentIndex: 1
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: init-scripts
+            mountPath: /docker-entrypoint-initdb.d
+        documentIndex: 1
