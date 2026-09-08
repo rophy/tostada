@@ -10,6 +10,7 @@ type: Opaque
 data:
   password: {{ .Values.postgresql.password | default "tostada" | b64enc | quote }}
   dsn: {{ printf "host=tostada-postgresql dbname=%s user=%s password=%s sslmode=disable" (.Values.postgresql.database | default "tostada") (.Values.postgresql.username | default "tostada") (.Values.postgresql.password | default "tostada") | b64enc | quote }}
+  jupyterhub-db-url: {{ printf "postgresql+psycopg2://%s:%s@tostada-postgresql:5432/jupyterhub" (.Values.postgresql.username | default "tostada") (.Values.postgresql.password | default "tostada") | b64enc | quote }}
 ---
 {{- end }}
 apiVersion: apps/v1

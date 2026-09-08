@@ -192,13 +192,15 @@ workspaces:
 # global.imageRegistry does not apply here. For air-gapped environments,
 # override hub.image.name and proxy.chp.image.name with the full path,
 # e.g. corp-registry.example.com/jupyterhub/k8s-hub
-# When postgresql.enabled=false (external DB), override hub.db.url to match
-# your external PostgreSQL connection.
+#
+# DB URL is injected via JUPYTERHUB_DB_URL env var from the tostada-postgresql
+# secret (key: jupyterhub-db-url). When using postgresql.existingSecret, ensure
+# the secret includes this key. When postgresql.enabled=false (external DB),
+# override hub.db.url or hub.extraEnv.JUPYTERHUB_DB_URL.
 jupyterhub:
   hub:
     db:
       type: postgres
-      url: postgresql+psycopg2://tostada:tostada@tostada-postgresql:5432/jupyterhub
     image:
       name: quay.io/jupyterhub/k8s-hub
       tag: "4.4.0"
@@ -223,7 +225,18 @@ jupyterhub:
           - admin
       KubeSpawner:
         http_timeout: 120
+    extraEnv:
+      JUPYTERHUB_DB_URL:
+        valueFrom:
+          secretKeyRef:
+            name: tostada-postgresql
+            key: jupyterhub-db-url
     extraConfig:
+      dbUrl: |
+        import os
+        db_url = os.environ.get("JUPYTERHUB_DB_URL")
+        if db_url:
+            c.JupyterHub.db_url = db_url
       prefixProxy: |
         from jupyterhub.proxy import ConfigurableHTTPProxy
 
