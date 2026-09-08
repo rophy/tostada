@@ -63,6 +63,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: tostada-postgresql-init
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -74,6 +80,15 @@ spec:
         resources:
           requests:
             storage: {{ .Values.postgresql.storage | default "1Gi" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tostada-postgresql-init
+data:
+  create-jupyterhub-db.sql: |
+    SELECT 'CREATE DATABASE jupyterhub OWNER ' || current_user
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'jupyterhub')\gexec
 ---
 apiVersion: v1
 kind: Service

@@ -191,12 +191,13 @@ workspaces:
 # global.imageRegistry does not apply here. For air-gapped environments,
 # override hub.image.name and proxy.chp.image.name with the full path,
 # e.g. corp-registry.example.com/jupyterhub/k8s-hub
-# When postgresql.enabled=true, configure JupyterHub to use PostgreSQL:
-#   jupyterhub.hub.db:
-#     type: postgres
-#     url: postgresql+psycopg2://tostada:tostada@tostada-postgresql/jupyterhub
+# When postgresql.enabled=false (external DB), override hub.db.url to match
+# your external PostgreSQL connection.
 jupyterhub:
   hub:
+    db:
+      type: postgres
+      url: postgresql+psycopg2://tostada:tostada@tostada-postgresql/jupyterhub
     image:
       name: quay.io/jupyterhub/k8s-hub
       tag: "4.4.0"
