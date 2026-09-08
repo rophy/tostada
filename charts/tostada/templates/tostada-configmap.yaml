@@ -19,8 +19,6 @@ data:
       proxyURL: "http://proxy-public:80"
     guacamole:
       url: {{ .Values.guacamole.url | quote }}
-    database:
-      path: {{ .Values.database.path | quote }}
     workspaces:
       {{- range $name, $ws := .Values.workspaces }}
       - name: {{ $name }}

@@ -13,11 +13,12 @@ import (
 )
 
 func openStore() *device.GormStore {
-	dbPath := os.Getenv("TOSTADA_DB")
-	if dbPath == "" {
-		dbPath = "tostada.db"
+	dsn := os.Getenv("DATABASE_DSN")
+	if dsn == "" {
+		fmt.Fprintln(os.Stderr, "DATABASE_DSN environment variable is required")
+		os.Exit(1)
 	}
-	store, err := device.NewGormStore(dbPath, device.WithSilentLogger())
+	store, err := device.NewGormStorePostgres(dsn, device.WithSilentLogger())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open database: %v\n", err)
 		os.Exit(1)

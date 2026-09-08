@@ -12,8 +12,7 @@ type Config struct {
 	OIDC       OIDCConfig       `yaml:"oidc"`
 	JupyterHub JupyterHubConfig `yaml:"jupyterhub"`
 	Guacamole  GuacamoleConfig  `yaml:"guacamole"`
-	Database   DatabaseConfig   `yaml:"database"`
-	AuditLog   AuditLogConfig   `yaml:"auditLog"`
+	AuditLog AuditLogConfig `yaml:"auditLog"`
 	Workspaces []Workspace      `yaml:"workspaces"`
 }
 
@@ -21,10 +20,6 @@ type AuditLogConfig struct {
 	LogDir     string `yaml:"logDir"`
 	MaxSizeMB  int    `yaml:"maxSizeMB"`
 	MaxBackups int    `yaml:"maxBackups"`
-}
-
-type DatabaseConfig struct {
-	Path string `yaml:"path"`
 }
 
 type ServerConfig struct {

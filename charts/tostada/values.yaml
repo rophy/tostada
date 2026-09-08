@@ -69,6 +69,8 @@ guacamole:
         memory: 512Mi
 
 postgresql:
+  # true: deploy a single-pod PostgreSQL (self-contained, good for dev/test)
+  # false: use external PostgreSQL — set external.existingSecret and external.secretKey
   enabled: true
   image:
     registry: ""
@@ -85,16 +87,9 @@ postgresql:
       memory: 64Mi
     limits:
       memory: 256Mi
-  # For external PostgreSQL (CNPG, RDS, etc.), set host and provide a secret
-  # containing the DSN. The built-in StatefulSet is skipped when host is set.
   external:
-    host: ""
     # existingSecret: my-pg-secret
     # secretKey: dsn
-
-database:
-  # SQLite path (used when postgresql.enabled=false)
-  path: "/data/tostada.db"
 
 oidcMock:
   enabled: true

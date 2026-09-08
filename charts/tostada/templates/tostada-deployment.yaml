@@ -62,18 +62,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.existingSecret }}
                   key: hub.services.tostada.apiToken
-            {{- if .Values.postgresql.enabled }}
             - name: DATABASE_DSN
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.postgresql.external.host }}
-                  name: {{ .Values.postgresql.external.existingSecret }}
-                  key: {{ .Values.postgresql.external.secretKey | default "dsn" }}
-                  {{- else }}
+                  {{- if .Values.postgresql.enabled }}
                   name: tostada-postgresql
                   key: dsn
+                  {{- else }}
+                  name: {{ required "postgresql.external.existingSecret is required when postgresql.enabled=false" .Values.postgresql.external.existingSecret }}
+                  key: {{ required "postgresql.external.secretKey is required when postgresql.enabled=false" .Values.postgresql.external.secretKey }}
                   {{- end }}
-            {{- end }}
           volumeMounts:
             - name: config
               mountPath: /etc/tostada

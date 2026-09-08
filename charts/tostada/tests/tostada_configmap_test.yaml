@@ -60,12 +60,6 @@ tests:
           path: data["config.yaml"]
           pattern: 'url: "http://guacamole:8080"'
 
-  - it: renders database path
-    asserts:
-      - matchRegex:
-          path: data["config.yaml"]
-          pattern: 'path: "/data/tostada.db"'
-
   - it: renders workspace with servesFromRoot flag
     asserts:
       - matchRegex:

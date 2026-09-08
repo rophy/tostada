@@ -58,16 +58,11 @@ func serve(configPath string) {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	var deviceStore *device.GormStore
-	if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
-		deviceStore, err = device.NewGormStorePostgres(dsn)
-	} else {
-		dbPath := cfg.Database.Path
-		if dbPath == "" {
-			dbPath = "tostada.db"
-		}
-		deviceStore, err = device.NewGormStore(dbPath)
+	dsn := os.Getenv("DATABASE_DSN")
+	if dsn == "" {
+		log.Fatal("DATABASE_DSN environment variable is required")
 	}
+	deviceStore, err := device.NewGormStorePostgres(dsn)
 	if err != nil {
 		log.Fatalf("Failed to initialize device store: %v", err)
 	}
