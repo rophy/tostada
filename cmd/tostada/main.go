@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -22,7 +23,10 @@ import (
 	"github.com/rophy/tostada/web"
 )
 
-var registerCoverageHandler func(mux *http.ServeMux)
+var (
+	version                = "dev"
+	registerCoverageHandler func(mux *http.ServeMux)
+)
 
 func main() {
 	rootCmd := &cobra.Command{
@@ -33,6 +37,13 @@ func main() {
 	rootCmd.AddCommand(serveCmd())
 	rootCmd.AddCommand(deviceCmd())
 	rootCmd.AddCommand(userCmd())
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Print the version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version)
+		},
+	})
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

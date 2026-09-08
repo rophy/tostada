@@ -1,4 +1,5 @@
 ARG DEVELOPMENT=0
+ARG VERSION=dev
 
 FROM node:22-alpine AS frontend
 ARG DEVELOPMENT
@@ -10,15 +11,17 @@ RUN DEVELOPMENT=$DEVELOPMENT npm run build
 
 FROM golang:1.25-alpine AS backend
 ARG DEVELOPMENT
+ARG VERSION
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/web/dist ./web/dist
-RUN if [ "$DEVELOPMENT" = "1" ]; then \
-      CGO_ENABLED=0 go build -cover -covermode=atomic -tags coverage -o /tostada ./cmd/tostada/; \
+RUN LDFLAGS="-X main.version=${VERSION}" && \
+    if [ "$DEVELOPMENT" = "1" ]; then \
+      CGO_ENABLED=0 go build -ldflags "$LDFLAGS" -cover -covermode=atomic -tags coverage -o /tostada ./cmd/tostada/; \
     else \
-      CGO_ENABLED=0 go build -o /tostada ./cmd/tostada/; \
+      CGO_ENABLED=0 go build -ldflags "$LDFLAGS" -o /tostada ./cmd/tostada/; \
     fi
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
